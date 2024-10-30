@@ -25,8 +25,12 @@ if success:
             try:
                 os.remove(target_file)
                 print(f"Removed existing file: {target_file}")
-                os.rename(module_file, target_file)
-                print(f"Successfully compiled and moved {target_file}")
             except Exception as e:
                 print(f"Failed to remove existing file: {target_file}\nError: {e}")
                 os.remove(module_file)
+                success = False 
+                
+    if success:
+        os.rename(module_file, target_file)
+        print(f"Moved {module_file} to {target_dir}")
+        print(f"Success!")

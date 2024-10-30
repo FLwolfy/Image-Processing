@@ -11,7 +11,7 @@ source_files = glob.glob("scripts/*.cpp") + glob.glob("scripts/*.c") + glob.glob
 # Define C++ extension module
 ext_modules = [
     Extension(
-        "ImageProcessing",
+        "image_processing",
         source_files,
         include_dirs=[pybind11_include, 'scripts'],
         language="c++",
@@ -20,8 +20,7 @@ ext_modules = [
 
 # Setup
 setup(
-    name="ImageProcessing",
-    version="0.1", 
+    name="image_processing",
     ext_modules=ext_modules,
     zip_safe=False,
 )
