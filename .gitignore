@@ -1,0 +1,46 @@
+# Ignore Visual Studio Code settings
+.vscode/
+
+# Ignore build directories
+build/
+modules/
+
+# Ignore images directory content
+images/*
+output/*
+
+# Ignore Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Ignore C++ build files
+*.o
+*.obj
+*.so
+*.exe
+*.dll
+*.out
+*.a
+*.lib
+*.pdb
+
+# Ignore macOS system files
+.DS_Store
+
+# Ignore Windows system files
+Thumbs.db
+desktop.ini
+
+# Ignore temporary files
+*.tmp
+*.log
+*.swp
+*.swo
+*.bak
+*.old
+
+# Ignore virtual environments
+venv/
+.env/
+env/
