@@ -5,9 +5,10 @@
 #include <stdexcept>
 #include <algorithm>
 #include <vector>
+#include <iostream>
 
 std::vector<unsigned char> ToGrayScale(
-    const std::vector<unsigned char>& data, 
+    const unsigned char* data, 
     int width, int height, 
     int bytesPerPixel
 ) {
@@ -34,10 +35,10 @@ std::vector<unsigned char> ToGrayScale(
 }
 
 std::vector<unsigned char> AddWatermark(
-    const std::vector<unsigned char>& data, 
+    const unsigned char* data, 
     int width, int height, 
     int bytesPerPixel, 
-    const std::vector<unsigned char>& watermark, 
+    const unsigned char* watermark, 
     int watermarkWidth, 
     int watermarkHeight, 
     int offsetX, 
@@ -106,7 +107,7 @@ std::vector<unsigned char> AddWatermark(
 }
 
 std::vector<unsigned char> ToNegative(
-    const std::vector<unsigned char>& data, 
+    const unsigned char* data, 
     int width, int height, 
     int bytesPerPixel
 ) {
@@ -130,7 +131,7 @@ std::vector<unsigned char> ToNegative(
 }
 
 std::vector<unsigned char> ToLinearScale(
-    const std::vector<unsigned char>& data, 
+    const unsigned char* data, 
     int width, int height, 
     int bytesPerPixel,
     int min, int max
@@ -143,10 +144,13 @@ std::vector<unsigned char> ToLinearScale(
     std::vector<int> channelMax(channel, 0);
 
     // Calculate the min and max value of each channel
-    for (int y = 0; y < height; y++) {
-        for (int x = 0; x < width; x++) {
+    for (int y = 0; y < height; y++) 
+    {
+        for (int x = 0; x < width; x++) 
+        {
             int index = (y * width + x) * bytesPerPixel;
-            for (int i = 0; i < channel; i++) {
+            for (int i = 0; i < channel; i++) 
+            {
                 channelMin[i] = std::min(channelMin[i], static_cast<int>(data[index + i]));
                 channelMax[i] = std::max(channelMax[i], static_cast<int>(data[index + i]));
             }
@@ -154,15 +158,22 @@ std::vector<unsigned char> ToLinearScale(
     }
 
     // Linear scale each channel
-    for (int y = 0; y < height; y++) {
-        for (int x = 0; x < width; x++) {
+    for (int y = 0; y < height; y++) 
+    {
+        for (int x = 0; x < width; x++) 
+        {
             int index = (y * width + x) * bytesPerPixel;
-            for (int i = 0; i < channel; i++) {
-                if (channelMax[i] != channelMin[i]) {
-                    linearScaledData[index + i] = static_cast<unsigned char>(
+            for (int i = 0; i < channel; i++) 
+            {
+                if (channelMax[i] != channelMin[i]) 
+                {
+                    linearScaledData[index + i] = static_cast<unsigned char>
+                    (
                         min + (data[index + i] - channelMin[i]) * (max - min) / (channelMax[i] - channelMin[i])
                     );
-                } else {
+                } 
+                else 
+                {
                     linearScaledData[index + i] = static_cast<unsigned char>(min);
                 }
             }
@@ -170,4 +181,69 @@ std::vector<unsigned char> ToLinearScale(
     }
 
     return linearScaledData;
+}
+
+std::vector<unsigned char> HistoryEqualizedEnhance(
+    const unsigned char* data, 
+    int width, int height, 
+    int bytesPerPixel,
+    int binSize,
+    const unsigned int* cumulativeHist
+) {
+    std::vector<unsigned char> enhancedData(width * height * bytesPerPixel);
+    int channel = bytesPerPixel < 3 ? 1 : 3;
+    binSize = binSize < 1 ? 1 : (binSize > 256 ? 256 : binSize);
+    int binNum = width * height / binSize;
+    binNum = binNum < 1 ? 1 : binNum;
+
+    // Calculate the bin color
+    std::vector<int> binColor((binSize + 1) * channel, 0);
+    for (int i = 0; i < channel; i++) 
+    {
+        int flag = 0;
+
+        for (int j = 0; j < binSize; j++)
+        {
+            for (int k = flag; k < 256; k++) 
+            {
+                if (cumulativeHist[i * 256 + k] >= binNum * j) 
+                {
+                    binColor[i * (binSize + 1) + j] = k;
+                    flag = k;
+                    break;
+                }
+            }
+        }
+    }
+
+    // Calculate the equalized image
+    for (int y = 0; y < height; y++) 
+    {
+        for (int x = 0; x < width; x++) 
+        {
+            int index = (y * width + x) * bytesPerPixel;
+            for (int i = 0; i < channel; i++) 
+            {
+                int binIndex = cumulativeHist[data[index + i]] / binNum;
+                binIndex = binIndex < binSize ? binIndex : binSize - 1;
+
+                int toMin = 255 * binIndex / binSize;
+                int toMax = 255 * (binIndex + 1) / binSize;
+                
+                int min = binColor[i * (binSize + 1) + binIndex];
+                int max = binColor[i * (binSize + 1) + binIndex + 1];
+
+                if (min == max) 
+                {
+                    enhancedData[index + i] = data[index + i];
+                }
+                else 
+                {
+                    enhancedData[index + i] = toMin + (data[index + i] - min) * (toMax - toMin) / (max - min);
+                }
+            }
+        }
+    }
+
+    return enhancedData;
 }

@@ -18,7 +18,7 @@ void InputRaw(unsigned char* data, const char* inputPath, int width, int height,
     fclose(file);
 }
 
-void OutputRaw(unsigned char* data, const char* outputPath, int width, int height, int bytesPerPixel) 
+void OutputRaw(const unsigned char* data, const char* outputPath, int width, int height, int bytesPerPixel) 
 {
     FILE* file;
     int dataSize = width * height * bytesPerPixel;

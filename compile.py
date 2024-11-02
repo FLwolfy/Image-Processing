@@ -1,5 +1,4 @@
 import os
-import shutil
 import glob
 import subprocess
 
@@ -26,11 +25,14 @@ if success:
                 os.remove(target_file)
                 print(f"Removed existing file: {target_file}")
             except Exception as e:
-                print(f"Failed to remove existing file: {target_file}\nError: {e}")
+                print(f"Access Denied: Failed to remove existing file: {target_file}, {e}")
+                print(f"The file '{target_file}' is in use.")
                 os.remove(module_file)
                 success = False 
                 
     if success:
         os.rename(module_file, target_file)
         print(f"Moved {module_file} to {target_dir}")
-        print(f"Success!")
+        print(f"\nSuccess!")
+    else:
+        print(f"\nFailed!")

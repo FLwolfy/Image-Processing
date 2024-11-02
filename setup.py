@@ -22,5 +22,5 @@ ext_modules = [
 setup(
     name="image_processing",
     ext_modules=ext_modules,
-    zip_safe=False,
+    zip_safe=False
 )
