@@ -27,8 +27,12 @@ public:
     static Image GrayScale(const Image& img);
     static Image Negative(const Image& img);
     static Image WaterMark(const Image& img, const Image& watermark, int offsetX, int offsetY, float filterWhiteThreshold, float blendRate);
-    static Image LinearScale(const Image& img, int min, int max);
-    static Image Enhance(const Image& img, int binSize);
+    static Image LinearScale(const Image& img, int channel, int min, int max);
+    static Image HistEqualize(const Image& img, int channel, int binSize);
+    static Image MeanDenoise(const Image& img, int channel, int windowSize);
+    static Image MedianDenoise(const Image& img, int channel, int windowSize, bool pseudo);
+    static Image GaussianDenoise(const Image& img, int channel, int windowSize, float STD);
+    static Image BilateralDenoise(const Image& img, int channel, int windowSize, float spaceSTD, float colorSTD);
 
 public:
     std::vector<unsigned char> m_data;

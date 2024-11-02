@@ -2,7 +2,7 @@
 
 // Ignore Warning, the include path is automatically added in setup.py"
 #include <pybind11/pybind11.h>
-#include <pybind11/numpy.h> 
+#include <pybind11/numpy.h>
 
 namespace py = pybind11;
 
@@ -50,6 +50,10 @@ PYBIND11_MODULE(image_processing, m)
         .def_static("gray_scale", &Image::GrayScale, py::arg("img"))
         .def_static("water_mark", &Image::WaterMark, py::arg("img"), py::arg("watermark"), py::arg("offset_x"), py::arg("offset_y"), py::arg("filter_white_threshold"), py::arg("blend_rate"))
         .def_static("negative", &Image::Negative, py::arg("img"))
-        .def_static("linear_scale", &Image::LinearScale, py::arg("img"), py::arg("min"), py::arg("max"))
-        .def_static("enhance", &Image::Enhance, py::arg("img"), py::arg("bin_size"));
+        .def_static("linear_scale", &Image::LinearScale, py::arg("img"), py::arg("channel"), py::arg("min"), py::arg("max"))
+        .def_static("hist_equalize", &Image::HistEqualize, py::arg("img"), py::arg("channel"), py::arg("bin_size"))
+        .def_static("mean_denoise", &Image::MeanDenoise, py::arg("img"), py::arg("channel"), py::arg("window_size"))
+        .def_static("median_denoise", &Image::MedianDenoise, py::arg("img"), py::arg("channel"), py::arg("window_size"), py::arg("pseudo") = false)
+        .def_static("gaussian_denoise", &Image::GaussianDenoise, py::arg("img"), py::arg("channel"), py::arg("window_size"), py::arg("STD"))
+        .def_static("bilateral_denoise", &Image::BilateralDenoise, py::arg("img"), py::arg("channel"), py::arg("window_size"), py::arg("space_STD"), py::arg("color_STD"));
 }

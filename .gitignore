@@ -3,10 +3,8 @@
 
 # Ignore build directories
 build/
-modules/
 
 # Ignore images directory content
-images/*
 output/*
 
 # Ignore Python cache files
@@ -44,3 +42,7 @@ desktop.ini
 venv/
 .env/
 env/
+
+# Ignore Images and Combiled python packages
+*.pyd
+*.raw

@@ -30,9 +30,9 @@ if success:
                 os.remove(module_file)
                 success = False 
                 
-    if success:
-        os.rename(module_file, target_file)
-        print(f"Moved {module_file} to {target_dir}")
-        print(f"\nSuccess!")
-    else:
-        print(f"\nFailed!")
+if success:
+    os.rename(module_file, target_file)
+    print(f"Moved {module_file} to {target_dir}")
+    print(f"\nSuccess!")
+else:
+    print(f"\nFailed!")

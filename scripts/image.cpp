@@ -1,6 +1,10 @@
 #include <image.h>
 
-// Public APIs
+///////////////////////////////////////////////////////////////
+///////////////////////// PUBLIC APIS /////////////////////////
+///////////////////////////////////////////////////////////////
+
+////////////// Regular processing functions //////////////
 
 Image Image::GrayScale(const Image &img)
 {
@@ -32,9 +36,11 @@ Image Image::WaterMark(const Image& img, const Image& watermark, int offsetX, in
     return watermarkedImage;
 }
 
-Image Image::LinearScale(const Image& img, int min, int max)
+////////////// Enhancement functions //////////////
+
+Image Image::LinearScale(const Image& img, int channel, int min, int max)
 {
-    std::vector<unsigned char> linearScaledData = ToLinearScale(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, min, max);
+    std::vector<unsigned char> linearScaledData = ToLinearScale(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, channel, min, max);
 
     Image linearScaledImage = Image(img.m_width, img.m_height, img.m_bytesPerPixel);
     linearScaledImage.m_data = linearScaledData;
@@ -42,10 +48,10 @@ Image Image::LinearScale(const Image& img, int min, int max)
     return linearScaledImage;
 }
 
-Image Image::Enhance(const Image& img, int binSize)
+Image Image::HistEqualize(const Image& img, int channel, int binSize)
 {
     std::vector<unsigned int> cumulativeHistData = img.GetCumulativeHist();
-    std::vector<unsigned char> enhancedData = HistoryEqualizedEnhance(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, binSize, cumulativeHistData.data());
+    std::vector<unsigned char> enhancedData = EqualizeHistogram(img.m_data.data(), cumulativeHistData.data(), img.m_width, img.m_height, img.m_bytesPerPixel, channel, binSize);
 
     Image enhancedImage = Image(img.m_width, img.m_height, img.m_bytesPerPixel);
     enhancedImage.m_data = enhancedData;
@@ -53,8 +59,51 @@ Image Image::Enhance(const Image& img, int binSize)
     return enhancedImage;
 }
 
+////////////// Noise Removal functions //////////////
 
-// Private APIs
+Image Image::MeanDenoise(const Image& img, int channel, int windowSize)
+{
+    std::vector<unsigned char> denoisedData = MeanFilter(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, channel, windowSize);
+
+    Image denoisedImage = Image(img.m_width, img.m_height, img.m_bytesPerPixel);
+    denoisedImage.m_data = denoisedData;
+
+    return denoisedImage;
+}
+
+Image Image::MedianDenoise(const Image& img, int channel, int windowSize, bool pseudo)
+{
+    std::vector<unsigned char> denoisedData = MedianFilter(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, channel, windowSize, pseudo);
+
+    Image denoisedImage = Image(img.m_width, img.m_height, img.m_bytesPerPixel);
+    denoisedImage.m_data = denoisedData;
+
+    return denoisedImage;
+}
+
+Image Image::GaussianDenoise(const Image& img, int channel, int windowSize, float STD)
+{
+    std::vector<unsigned char> denoisedData = GaussianFilter(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, channel, windowSize, STD);
+
+    Image denoisedImage = Image(img.m_width, img.m_height, img.m_bytesPerPixel);
+    denoisedImage.m_data = denoisedData;
+
+    return denoisedImage;
+}
+
+Image Image::BilateralDenoise(const Image& img, int channel, int windowSize, float spaceSTD, float colorSTD)
+{
+    std::vector<unsigned char> denoisedData = BilateralFilter(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, channel, windowSize, spaceSTD, colorSTD);
+
+    Image denoisedImage = Image(img.m_width, img.m_height, img.m_bytesPerPixel);
+    denoisedImage.m_data = denoisedData;
+
+    return denoisedImage;
+}
+
+////////////////////////////////////////////////////////////////
+///////////////////////// PRIVATE APIS /////////////////////////
+////////////////////////////////////////////////////////////////
 
 std::vector<unsigned int> Image::GetHist() const
 {
