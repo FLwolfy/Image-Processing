@@ -4,6 +4,13 @@
 
 ///////////////////////// Regular processing functions /////////////////////////
 
+std::vector<unsigned char> SeparateChannel(
+    const unsigned char* data, 
+    int width, int height, 
+    int bytesPerPixel, 
+    int channel
+);
+
 std::vector<unsigned char> ToGrayScale(
     const unsigned char* data, 
     int width, int height, 

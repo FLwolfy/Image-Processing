@@ -6,6 +6,16 @@
 
 ////////////// Regular processing functions //////////////
 
+Image Image::ChannelSeparate(const Image& img, int channel)
+{
+    std::vector<unsigned char> separatedData = SeparateChannel(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, channel);
+
+    Image separatedImage = Image(img.m_width, img.m_height, 1);
+    separatedImage.m_data = separatedData;
+
+    return separatedImage;
+}
+
 Image Image::GrayScale(const Image &img)
 {
     std::vector<unsigned char> grayData = ToGrayScale(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel);
@@ -132,7 +142,7 @@ std::vector<unsigned int> Image::GetCumulativeHist() const
     for (int channel = 0; channel < m_bytesPerPixel; channel++) 
     {
         int offset = channel * 256;
-        cumulativeHistData[offset] = histData[offset]; // 初始化第一个 bin
+        cumulativeHistData[offset] = histData[offset];
 
         for (int i = 1; i < 256; i++) 
         {

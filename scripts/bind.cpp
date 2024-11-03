@@ -47,6 +47,7 @@ PYBIND11_MODULE(image_processing, m)
         .def("save", &Image::Save, py::arg("output_file_path"))
 
         // Image processing functions
+        .def_static("channel_separate", &Image::ChannelSeparate, py::arg("img"), py::arg("channel"))
         .def_static("gray_scale", &Image::GrayScale, py::arg("img"))
         .def_static("water_mark", &Image::WaterMark, py::arg("img"), py::arg("watermark"), py::arg("offset_x"), py::arg("offset_y"), py::arg("filter_white_threshold"), py::arg("blend_rate"))
         .def_static("negative", &Image::Negative, py::arg("img"))

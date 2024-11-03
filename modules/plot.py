@@ -8,7 +8,8 @@ def show_image(image: Image, title: str):
         plt.imshow(image.raw_data, cmap="gray", vmin=0, vmax=255)
     else:
         plt.imshow(image.raw_data)
-    plt.title(title)
+    wrapped_title = "\n".join(textwrap.wrap(title, width=20))
+    plt.title(wrapped_title)
     plt.axis('off')
     plt.show()
         
@@ -19,7 +20,8 @@ def show_images(images: list[Image], titles: list[str]):
             axes[i].imshow(image.raw_data, cmap="gray", vmin=0, vmax=255)
         else:
             axes[i].imshow(image.raw_data)
-        axes[i].set_title(title)
+        wrapped_title = "\n".join(textwrap.wrap(title, width=20))
+        axes[i].set_title(wrapped_title)
         axes[i].axis('off')
     plt.subplots_adjust(wspace=0.4)        
     plt.show()
@@ -48,14 +50,14 @@ def plot_histograms(images: list[Image], titles: str, channels: int=None, cumula
     plt.show()
     
     
-def compare_histograms(ref_img: 'Image', target_img: 'Image', function_name: str, param_name: str, param_type: type, param_range: np.ndarray, other_param_dict: dict[str, any], channel: int = 0):
+def tune_param(ref_img: 'Image', target_img: 'Image', func_name: str, param_name: str, param_type: type, param_range: np.ndarray, other_param_dict: dict[str, any], channel: int = 0):
     """
-    Compare the histograms of two images and plot the mean squared error (MSE) as a function of a parameter.
+    Plot the Mean Squared Error (MSE) values for a given image method and parameter over a range of values.
 
     Parameters:
         ref_img: The reference image object.
         target_img: The image object to compare against the reference.
-        function_name: A string representing the name of the image method (e.g., "gray_scale").
+        func_name: A string representing the name of the image method (e.g., "gray_scale").
         param_name: A string representing the name of the parameter to vary.
         param_type: The type of the parameter (e.g., int, float).
         param_range: A list or numpy array representing the range of parameter values to iterate over.
@@ -63,35 +65,51 @@ def compare_histograms(ref_img: 'Image', target_img: 'Image', function_name: str
         channel: An optional integer specifying the image channel to use for comparison (default is 0).
     """
     
-    hist1 = ref_img.get_hist()[channel]
+    ref_data = np.array(ref_img.raw_data)[:, :, channel]
     mse_values = []
 
     for param_value in param_range:
         other_param_dict[param_name] = param_type(param_value)
-        hist2 = getattr(Image, function_name)(target_img, **other_param_dict).get_hist()[channel]
+        transformed_img = getattr(Image, func_name)(target_img, **other_param_dict)
+        target_data = np.array(transformed_img.raw_data)[:, :, channel]
 
-        mse = np.sqrt(np.mean((np.array(hist1) - np.array(hist2)) ** 2))
+        mse = np.mean((ref_data - target_data) ** 2)
         mse_values.append(mse)
 
     # Plot MSE values
     plt.figure(figsize=(10, 6))
     plt.plot(param_range, mse_values, marker='o', label='MSE')
 
-    # Find min and max MSE values
     min_mse = min(mse_values)
     max_mse = max(mse_values)
 
-    # Annotate min MSE
     min_idx = mse_values.index(min_mse)
     plt.annotate(f'x: {param_range[min_idx]:.2f}', (param_range[min_idx], min_mse), textcoords="offset points", xytext=(0,10), ha='center', color='red')
-
-    # Annotate max MSE
     max_idx = mse_values.index(max_mse)
     plt.annotate(f'x: {param_range[max_idx]:.2f}', (param_range[max_idx], max_mse), textcoords="offset points", xytext=(0,10), ha='center', color='blue')
-
+    
     plt.xlabel(f'{param_name} ({param_type.__name__})')
     plt.ylabel('Mean Squared Error (MSE)')
-    plt.title(f"MSE vs '{param_name}' for '{function_name}' method")
+    plt.title(f"MSE vs '{param_name}' for '{func_name}' method")
     plt.grid(True)
     plt.legend()
     plt.show()
+    
+def compare_images(img1: Image, img2: Image) -> float:
+    """
+    Compares two images and calculates the Mean Squared Error (MSE) between their raw data.
+    
+    Parameters:
+    - img1: The first image to compare.
+    - img2: The second image to compare.
+    - channel_count: The number of channels to compare (default is 1 for grayscale).
+    
+    Returns:
+    - float: The Mean Squared Error between the two images.
+    """
+    data1 = img1.raw_data.flatten()
+    data2 = img2.raw_data.flatten()
+
+    # Calculate MSE
+    mse = np.mean((data1 - data2) ** 2)
+    return mse

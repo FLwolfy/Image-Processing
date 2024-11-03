@@ -24,6 +24,7 @@ public:
     std::vector<unsigned int> GetCumulativeHist() const;
 
     // Image processing functions
+    static Image ChannelSeparate(const Image& img, int channel);
     static Image GrayScale(const Image& img);
     static Image Negative(const Image& img);
     static Image WaterMark(const Image& img, const Image& watermark, int offsetX, int offsetY, float filterWhiteThreshold, float blendRate);

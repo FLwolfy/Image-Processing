@@ -11,6 +11,26 @@
 
 ///////////////////////// Regular processing functions /////////////////////////
 
+std::vector<unsigned char> SeparateChannel(
+    const unsigned char* data, 
+    int width, int height, 
+    int bytesPerPixel, 
+    int channel
+) {
+    std::vector<unsigned char> separatedData(width * height);
+
+    for (int y = 0; y < height; y++) 
+    {
+        for (int x = 0; x < width; x++) 
+        {
+            int index = (y * width + x) * bytesPerPixel;
+            separatedData[y * width + x] = data[index + channel];
+        }
+    }
+
+    return separatedData;
+}
+
 std::vector<unsigned char> ToGrayScale(
     const unsigned char* data, 
     int width, int height, 
