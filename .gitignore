@@ -46,3 +46,6 @@ env/
 # Ignore Images and Combiled python packages
 *.pyd
 *.raw
+*.jpg
+*.jpeg
+*.png
