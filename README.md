@@ -128,8 +128,6 @@ img.load("path/to/image.png")
 img.save("path/to/output.png")
 ```
 
----
-
 ### Displaying Images
 ```python
 from modules import show_image
