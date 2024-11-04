@@ -49,3 +49,7 @@ env/
 *.jpg
 *.jpeg
 *.png
+
+# Ignore Jupyter Notebook
+.ipynb_checkpoints/
+*.ipynb
