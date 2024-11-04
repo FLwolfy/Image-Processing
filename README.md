@@ -81,29 +81,19 @@ Image(width: int, height: int, bytesPerPixel: int)
 
 The `plot.py` module provides functions for visualizing images and histograms.
 
-#### show_image
-```python
-show_image(image: Image, title: str)
-```
-Displays a single image with a title.
-
 #### show_images
 ```python
+show_image(image: Image, title: str)
 show_images(images: list[Image], titles: list[str])
 ```
-Displays multiple images in a single figure.
-
-#### plot_histogram
-```python
-plot_histogram(image: Image, title: str, channel: int = 0, cumulative: bool = False)
-```
-Plots the histogram of an image.
+Displays the image(s) in a single figure.
 
 #### plot_histograms
 ```python
+plot_histogram(image: Image, title: str, channel: int = 0, cumulative: bool = False)
 plot_histograms(images: list[Image], titles: list[str], channels: list[int] = None, cumulative: bool = False)
 ```
-Plots histograms for multiple images.
+Plots histogram(s) for image(s).
 
 #### tune_param
 ```python
