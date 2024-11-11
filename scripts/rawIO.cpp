@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdexcept>
+#include <string>
 
 void InputRaw(unsigned char* data, const char* inputPath, int width, int height, int bytesPerPixel) 
 {
