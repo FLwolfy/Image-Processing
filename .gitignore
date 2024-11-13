@@ -4,6 +4,12 @@
 # Ignore build directories
 build/
 
+# Ignore Images 
+images/
+
+# Ignore local directories
+locals/
+
 # Ignore images directory content
 output/*
 
@@ -43,13 +49,10 @@ venv/
 .env/
 env/
 
-# Ignore Images and Combiled python packages
+# Ignore Combiled python packages
 *.pyd
-*.raw
-*.jpg
-*.jpeg
-*.png
 
 # Ignore Jupyter Notebook
 .ipynb_checkpoints/
 *.ipynb
+

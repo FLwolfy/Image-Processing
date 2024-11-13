@@ -36,9 +36,9 @@ Image Image::Negative(const Image& img)
     return negativeImage;
 }
 
-Image Image::WaterMark(const Image& img, const Image& watermark, int offsetX, int offsetY, float filterWhiteThreshold, float blendRate)
+Image Image::WaterMark(const Image& img, const Image& watermark, int offsetX, int offsetY, unsigned char threshold, float blendRate)
 {
-    std::vector<unsigned char> watermarkedData = AddWatermark(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, watermark.m_data.data(), watermark.m_width, watermark.m_height, offsetX, offsetY, filterWhiteThreshold, blendRate);
+    std::vector<unsigned char> watermarkedData = AddWatermark(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, watermark.m_data.data(), watermark.m_width, watermark.m_height, offsetX, offsetY, threshold, blendRate);
 
     Image watermarkedImage = Image(img.m_width, img.m_height, img.m_bytesPerPixel);
     watermarkedImage.m_data = watermarkedData;
@@ -111,9 +111,31 @@ Image Image::BilateralDenoise(const Image& img, int channel, int windowSize, flo
     return denoisedImage;
 }
 
-////////////////////////////////////////////////////////////////
-///////////////////////// PRIVATE APIS /////////////////////////
-////////////////////////////////////////////////////////////////
+////////////// Edge Detection functions //////////////
+
+Image Image::SobelEdge(const Image& img, int channel, int windowSize, unsigned char threshold)
+{
+    std::vector<unsigned char> edgeData = ToSobelEdge(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, channel, windowSize, threshold);
+
+    Image edgeImage = Image(img.m_width, img.m_height, img.m_bytesPerPixel);
+    edgeImage.m_data = edgeData;
+
+    return edgeImage;
+}
+
+Image Image::LaplacianEdge(const Image& img, int channel, int windowSize, unsigned char threshold)
+{
+    std::vector<unsigned char> edgeData = ToLaplacianEdge(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, channel, windowSize, threshold);
+
+    Image edgeImage = Image(img.m_width, img.m_height, img.m_bytesPerPixel);
+    edgeImage.m_data = edgeData;
+
+    return edgeImage;
+}
+
+//////////////////////////////////////////////////////////////////
+///////////////////////// Histogram APIS /////////////////////////
+//////////////////////////////////////////////////////////////////
 
 std::vector<unsigned int> Image::GetHist() const
 {

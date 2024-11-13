@@ -1,13 +1,38 @@
 #pragma once
 
-#include <vector>
+#include <kernel.h>
 
-unsigned char Max(const std::vector<unsigned char>& array);
+///////////////////////// Math Functions /////////////////////////
 
-unsigned char Min(const std::vector<unsigned char>& array);
+unsigned char Max(const unsigned char* array, int length);
 
-unsigned char Maximin(const std::vector<unsigned char>& array);
+unsigned char Min(const unsigned char* array, int length);
 
-unsigned char Minimax(const std::vector<unsigned char>& array);
+unsigned char Maximin(const unsigned char* array, int length);
 
-std::vector<unsigned char> Sort(const std::vector<unsigned char>& array);
+unsigned char Minimax(const unsigned char* array, int length);
+
+unsigned char Median(const unsigned char* array, int length, bool pseudo);
+
+///////////////////////// Array Functions /////////////////////////
+
+std::vector<unsigned char> Sort(
+    const unsigned char* array,
+    int length
+);
+
+std::vector<unsigned char> Convolve(
+    const unsigned char* data,
+    int width, int height,
+    int bytesPerPixel,
+    int channel,
+    const Kernel& kernel
+);
+
+std::vector<float> ConvolvePrecise(
+    const unsigned char* data,
+    int width, int height,
+    int bytesPerPixel,
+    int channel,
+    const Kernel& kernel
+);

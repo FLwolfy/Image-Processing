@@ -26,7 +26,7 @@ std::vector<unsigned char> AddWatermark(
     int watermarkHeight, 
     int offsetX, 
     int offsetY,
-    float filterWhiteThreshold,
+    unsigned char threshold,
     float blendRate
 );
 
@@ -93,3 +93,22 @@ std::vector<unsigned char> BilateralFilter(
     float colorSTD
 );
 
+///////////////////////// Edge Detection functions /////////////////////////
+
+std::vector<unsigned char> ToSobelEdge(
+    const unsigned char* data, 
+    int width, int height, 
+    int bytesPerPixel,
+    int channel,
+    int windowSize,
+    unsigned char threshold
+);
+
+std::vector<unsigned char> ToLaplacianEdge(
+    const unsigned char* data, 
+    int width, int height, 
+    int bytesPerPixel,
+    int channel,
+    int windowSize,
+    unsigned char threshold
+);

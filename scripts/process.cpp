@@ -67,7 +67,7 @@ std::vector<unsigned char> AddWatermark(
     int watermarkHeight, 
     int offsetX, 
     int offsetY,
-    float filterWhiteThreshold,
+    unsigned char threshold,
     float blendRate
 ) {
     std::vector<unsigned char> watermarkedData(width * height * bytesPerPixel);
@@ -86,12 +86,12 @@ std::vector<unsigned char> AddWatermark(
             {
                 // Calculate if the watermark pixel is white (needed to be filtered)
                 bool isWhite = false;
-                if (filterWhiteThreshold > 0) 
+                if (threshold > 0) 
                 {
                     isWhite = true;
                     for (int i = 0; i < channel; i++) 
                     {
-                        if (watermark[watermarkIndex + i] < (unsigned char)filterWhiteThreshold) 
+                        if (watermark[watermarkIndex + i] < threshold) 
                         {
                             isWhite = false;
                             break;
@@ -273,55 +273,19 @@ std::vector<unsigned char> MeanFilter(
     int channel,
     int windowSize
 ) {
-    std::vector<unsigned char> denoisedData(width * height * bytesPerPixel);
-
     channel = channel < 0 ? 0 : (channel >= bytesPerPixel ? bytesPerPixel - 1 : channel);
 
     // Make sure the window size is odd and not too big
     windowSize = windowSize < 1 ? 1 : (windowSize > 100 ? 100 : windowSize);
     windowSize = windowSize % 2 == 0 ? windowSize + 1 : windowSize;
 
-    int halfSize = windowSize / 2;
-    int windowArea = windowSize * windowSize;
-
-    for (int y = 0; y < height; y++) 
-    {
-        for (int x = 0; x < width; x++) 
-        {
-            int index = (y * width + x) * bytesPerPixel;
-            int sum = 0;
-
-            // Calculate the sum
-            for (int i = -halfSize; i <= halfSize; i++) 
-            {
-                for (int j = -halfSize; j <= halfSize; j++) 
-                {
-                    // If out of bound, use the nearest pixel
-                    int curX = std::min(std::max(x + j, 0), width - 1);
-                    int curY = std::min(std::max(y + i, 0), height - 1);
-                    int curIndex = (curY * width + curX) * bytesPerPixel;
-
-                    sum += data[curIndex + channel];
-                }
-            }
-
-            // Calculate the mean
-            for (int i = 0; i < bytesPerPixel; i++) 
-            {
-                if (i == channel) 
-                {
-                    denoisedData[index + channel] = sum / windowArea;
-                } 
-                else 
-                {
-                    // Keep the other channels
-                    denoisedData[index + i] = data[index + i];
-                }       
-            }
-        }
-    }
-
-    return denoisedData;
+    return Convolve(
+        data, 
+        width, height, 
+        bytesPerPixel, 
+        channel, 
+        Kernel::Mean(windowSize)
+    );
 }
 
 std::vector<unsigned char> MedianFilter(
@@ -369,18 +333,7 @@ std::vector<unsigned char> MedianFilter(
             {
                 if (i == channel) 
                 {
-                    // Use the pseudo median
-                    if (pseudo) 
-                    {
-                        denoisedData[index + channel] = Maximin(window) / 2 + Minimax(window) / 2;
-                    }
-
-                    // Use the real median
-                    else 
-                    {
-                        window = Sort(window);
-                        denoisedData[index + channel] = window[windowArea / 2];
-                    }
+                    denoisedData[index + channel] = Median(window.data(), windowArea, pseudo);
                 } 
                 else 
                 {
@@ -402,73 +355,19 @@ std::vector<unsigned char> GaussianFilter(
     int windowSize,
     float STD
 ) {
-    std::vector<unsigned char> denoisedData(width * height * bytesPerPixel);
-
     channel = channel < 0 ? 0 : (channel >= bytesPerPixel ? bytesPerPixel - 1 : channel);
 
     // Make sure the window size is odd and not too big
     windowSize = windowSize < 1 ? 1 : (windowSize > 100 ? 100 : windowSize);
     windowSize = windowSize % 2 == 0 ? windowSize + 1 : windowSize;
 
-    int halfSize = windowSize / 2;
-    int windowArea = windowSize * windowSize;
-
-    // Calculate the Gaussian kernel
-    std::vector<float> kernel(windowArea, 0);
-    float sum = 0;
-    for (int i = -halfSize; i <= halfSize; i++) 
-    {
-        for (int j = -halfSize; j <= halfSize; j++) 
-        {
-            kernel[(i + halfSize) * windowSize + (j + halfSize)] = exp(-(i * i + j * j) / (2 * STD * STD));
-            sum += kernel[(i + halfSize) * windowSize + (j + halfSize)];
-        }
-    }
-
-    // Normalize the kernel
-    for (int i = 0; i < windowArea; i++) 
-    {
-        kernel[i] /= sum;
-    }
-
-    for (int y = 0; y < height; y++) 
-    {
-        for (int x = 0; x < width; x++) 
-        {
-            int index = (y * width + x) * bytesPerPixel;
-            float sum = 0;
-
-            // Calculate the sum
-            for (int i = -halfSize; i <= halfSize; i++) 
-            {
-                for (int j = -halfSize; j <= halfSize; j++) 
-                {
-                    // If out of bound, use the nearest pixel
-                    int curX = std::min(std::max(x + j, 0), width - 1);
-                    int curY = std::min(std::max(y + i, 0), height - 1);
-                    int curIndex = (curY * width + curX) * bytesPerPixel;
-
-                    sum += data[curIndex + channel] * kernel[(i + halfSize) * windowSize + (j + halfSize)];
-                }
-            }
-
-            // Calculate the mean
-            for (int i = 0; i < bytesPerPixel; i++) 
-            {
-                if (i == channel) 
-                {
-                    denoisedData[index + channel] = static_cast<unsigned char>(sum);
-                } 
-                else 
-                {
-                    // Keep the other channels
-                    denoisedData[index + i] = data[index + i];
-                }
-            }
-        }
-    }
-
-    return denoisedData;
+    return Convolve(
+        data, 
+        width, height, 
+        bytesPerPixel, 
+        channel, 
+        Kernel::Gaussian(STD, windowSize)
+    );
 }
 
 std::vector<unsigned char> BilateralFilter(
@@ -536,3 +435,102 @@ std::vector<unsigned char> BilateralFilter(
     return filteredData;
 }
 
+std::vector<unsigned char> ToSobelEdge(
+    const unsigned char* data, 
+    int width, int height, 
+    int bytesPerPixel,
+    int channel,
+    int windowSize,
+    unsigned char threshold
+) {
+    std::vector<unsigned char> edgeData(width * height * bytesPerPixel);
+
+    channel = channel < 0 ? 0 : (channel >= bytesPerPixel ? bytesPerPixel - 1 : channel);
+
+    // Make sure the window size is odd and not too big
+    windowSize = windowSize < 1 ? 1 : (windowSize > 100 ? 100 : windowSize);
+    windowSize = windowSize % 2 == 0 ? windowSize + 1 : windowSize;
+
+    Kernel kernel = Kernel::Sobel(windowSize, true);
+    std::vector<float> gradientX = ConvolvePrecise(data, width, height, bytesPerPixel, channel, kernel);
+
+    kernel = Kernel::Sobel(windowSize, false);
+    std::vector<float> gradientY = ConvolvePrecise(data, width, height, bytesPerPixel, channel, kernel);
+
+    for (int y = 0; y < height; y++)
+    {
+        for (int x = 0; x < width; x++) 
+        {
+            int index = (y * width + x) * bytesPerPixel;
+            float gx = gradientX[index + channel];
+            float gy = gradientY[index + channel];
+            float gradient = std::sqrt(gx * gx + gy * gy);
+
+            for (int i = 0; i < bytesPerPixel; i++) 
+            {
+                if (i == channel)
+                {
+                    edgeData[index + i] = gradient > threshold ? 255 : 0;
+                }
+                else
+                {
+                    // Keep the other channels
+                    edgeData[index + i] = data[index + i];
+                }
+            }
+        }
+    }
+
+    return edgeData;
+}
+
+std::vector<unsigned char> ToLaplacianEdge(
+    const unsigned char* data, 
+    int width, int height, 
+    int bytesPerPixel,
+    int channel,
+    int windowSize,
+    unsigned char threshold
+) {
+    std::vector<unsigned char> edgeData(width * height * bytesPerPixel);
+
+    channel = channel < 0 ? 0 : (channel >= bytesPerPixel ? bytesPerPixel - 1 : channel);
+
+    // Make sure the window size is odd and not too big
+    windowSize = windowSize < 1 ? 1 : (windowSize > 100 ? 100 : windowSize);
+    windowSize = windowSize % 2 == 0 ? windowSize + 1 : windowSize;
+
+    Kernel kernel = Kernel::Laplacian(windowSize);
+    std::vector<float> gradient = ConvolvePrecise(data, width, height, bytesPerPixel, channel, kernel);
+
+    for (int y = 0; y < height; y++)
+    {
+        for (int x = 0; x < width; x++) 
+        {
+            int index = (y * width + x) * bytesPerPixel;
+            float gradientValue = gradient[index + channel];
+
+            for (int i = 0; i < bytesPerPixel; i++) 
+            {
+                if (i == channel)
+                {
+                    if (gradientValue > -threshold && gradientValue < threshold)
+                    {
+                        edgeData[index + i] = 0;
+                    }
+                    else
+                    {
+                        edgeData[index + i] = 255;
+                    }
+                }
+                else
+                {
+                    // Keep the other channels
+                    edgeData[index + i] = data[index + i];
+                }
+            }
+        }
+    }
+
+    return edgeData;
+}

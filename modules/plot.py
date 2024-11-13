@@ -4,6 +4,9 @@ import numpy as np
 from modules.image_processing import Image
 
 def show_image(image: Image, title: str):
+    """
+    Plot an image with a given title.
+    """
     if image.bytes_per_pixel == 1:
         plt.imshow(image.raw_data, cmap="gray", vmin=0, vmax=255)
     else:
@@ -14,6 +17,9 @@ def show_image(image: Image, title: str):
     plt.show()
         
 def show_images(images: list[Image], titles: list[str]):
+    """
+    Plot multiple images with their respective titles.
+    """
     fig, axes = plt.subplots(1, len(images), figsize=(10, 5)) 
     for i, (image, title) in enumerate(zip(images, titles)):
         if image.bytes_per_pixel == 1:
@@ -27,6 +33,15 @@ def show_images(images: list[Image], titles: list[str]):
     plt.show()
     
 def plot_histogram(image: Image, title: str, channel: int=0, cumulative: bool=False):
+    """
+    Plot the histogram of an image.
+    
+    Parameters:
+    - image: The image object.
+    - title: The title of the plot.
+    - channel: The channel to plot the histogram for (default is 0).
+    - cumulative: Whether to plot the cumulative histogram (default is False).
+    """
     histogram = image.get_cumulative_hist()[channel] if cumulative else image.get_hist()[channel]
     plt.bar(range(256), histogram, width=1, edgecolor='black')
     wrapped_title = "\n".join(textwrap.wrap(title, width=20))
@@ -36,6 +51,15 @@ def plot_histogram(image: Image, title: str, channel: int=0, cumulative: bool=Fa
     plt.show()
     
 def plot_histograms(images: list[Image], titles: str, channels: int=None, cumulative: bool=False):
+    """
+    Plot the histograms of multiple images.
+    
+    Parameters:
+    - images: A list of image objects.
+    - titles: A list of titles for the plots.
+    - channels: A list of channels to plot the histograms for (default is 0 for all images).
+    - cumulative: Whether to plot the cumulative histograms (default is False).
+    """
     if channels is None:
         channels = [0] * len(images)
     fig, axes = plt.subplots(1, len(images), figsize=(10, 5))
