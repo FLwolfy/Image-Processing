@@ -54,5 +54,4 @@ env/
 
 # Ignore Jupyter Notebook
 .ipynb_checkpoints/
-*.ipynb
 

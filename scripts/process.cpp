@@ -67,7 +67,7 @@ std::vector<unsigned char> AddWatermark(
     int watermarkHeight, 
     int offsetX, 
     int offsetY,
-    unsigned char threshold,
+    unsigned char noise,
     float blendRate
 ) {
     std::vector<unsigned char> watermarkedData(width * height * bytesPerPixel);
@@ -86,12 +86,12 @@ std::vector<unsigned char> AddWatermark(
             {
                 // Calculate if the watermark pixel is white (needed to be filtered)
                 bool isWhite = false;
-                if (threshold > 0) 
+                if (noise > 0) 
                 {
                     isWhite = true;
                     for (int i = 0; i < channel; i++) 
                     {
-                        if (watermark[watermarkIndex + i] < threshold) 
+                        if (watermark[watermarkIndex + i] < noise) 
                         {
                             isWhite = false;
                             break;
@@ -435,6 +435,9 @@ std::vector<unsigned char> BilateralFilter(
     return filteredData;
 }
 
+
+///////////////////////// Edge Detection functions /////////////////////////
+
 std::vector<unsigned char> ToSobelEdge(
     const unsigned char* data, 
     int width, int height, 
@@ -490,7 +493,7 @@ std::vector<unsigned char> ToLaplacianEdge(
     int bytesPerPixel,
     int channel,
     int windowSize,
-    unsigned char threshold
+    unsigned char noise
 ) {
     std::vector<unsigned char> edgeData(width * height * bytesPerPixel);
 
@@ -514,7 +517,7 @@ std::vector<unsigned char> ToLaplacianEdge(
             {
                 if (i == channel)
                 {
-                    if (gradientValue > -threshold && gradientValue < threshold)
+                    if (gradientValue > -noise && gradientValue < noise)
                     {
                         edgeData[index + i] = 0;
                     }

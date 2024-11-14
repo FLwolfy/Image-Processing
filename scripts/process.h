@@ -101,7 +101,9 @@ std::vector<unsigned char> ToSobelEdge(
     int bytesPerPixel,
     int channel,
     int windowSize,
-    unsigned char threshold
+    const char* thresholdMethod,
+    unsigned char lowThreshold = 0,   // Only used for Hysteresis Thresholding
+    unsigned char highThreshold = 0 
 );
 
 std::vector<unsigned char> ToLaplacianEdge(
@@ -110,5 +112,5 @@ std::vector<unsigned char> ToLaplacianEdge(
     int bytesPerPixel,
     int channel,
     int windowSize,
-    unsigned char threshold
+    unsigned char noise
 );
