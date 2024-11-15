@@ -691,3 +691,52 @@ std::vector<unsigned char> ToLaplacianEdge(
 
     return edgeData;
 }
+
+///////////////////////// Morphological functions /////////////////////////
+
+std::vector<unsigned char> Morpho(
+    const unsigned char* data, 
+    int width, int height, 
+    int bytesPerPixel,
+    int channel,
+    const std::string& type,
+    int iterations
+) {
+    std::vector<unsigned char> morphedData(data, data + width * height * bytesPerPixel);
+
+    channel = channel < 0 ? 0 : (channel >= bytesPerPixel ? bytesPerPixel - 1 : channel);
+
+    // Apply the shrinking algorithm
+    std::vector<Kernel> conditional = Kernel::Pattern(type, true);
+    std::vector<Kernel> unconditional = Kernel::Pattern(type, false);
+
+    for (int iter = 0; iter < iterations; iter++) 
+    {
+        std::vector<bool> masks = Mask(morphedData.data(), width, height, bytesPerPixel, channel, conditional);
+        std::vector<bool> preserved = MaskBool(masks, width, height, unconditional);
+
+        // Apply the result to the morphed data
+        for (int y = 0; y < height; y++) 
+        {
+            for (int x = 0; x < width; x++) 
+            {
+                int index = (y * width + x) * bytesPerPixel;
+                for (int i = 0; i < bytesPerPixel; i++) 
+                {
+                    if (i == channel) 
+                    {
+                        // G = X ∩ [!M ∪ P]
+                        morphedData[index + i] = morphedData[index + i] * (!masks[y * width + x] || preserved[y * width + x]);
+                    } 
+                    else 
+                    {
+                        // Keep the other channels
+                        morphedData[index + i] = morphedData[index + i];
+                    }
+                }
+            }
+        }
+    }
+
+    return morphedData;
+}

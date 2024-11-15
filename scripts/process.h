@@ -116,3 +116,14 @@ std::vector<unsigned char> ToLaplacianEdge(
     int windowSize,
     float threshold
 );
+
+///////////////////////// Morphological functions /////////////////////////
+
+std::vector<unsigned char> Morpho(
+    const unsigned char* data, 
+    int width, int height, 
+    int bytesPerPixel,
+    int channel,
+    const std::string& type,
+    int iterations
+);

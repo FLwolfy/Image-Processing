@@ -36,3 +36,17 @@ std::vector<float> ConvolvePrecise(
     int channel,
     const Kernel& kernel
 );
+
+std::vector<bool> Mask(
+    const unsigned char* data,
+    int width, int height,
+    int bytesPerPixel,
+    int channel,
+    const std::vector<Kernel>& kernels
+);
+
+std::vector<bool> MaskBool(
+    const std::vector<bool>& data,
+    int width, int height,
+    const std::vector<Kernel>& kernels
+);

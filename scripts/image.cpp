@@ -133,6 +133,18 @@ Image Image::LaplacianEdge(const Image& img, int channel, int windowSize, float 
     return edgeImage;
 }
 
+////////////// Morphological functions //////////////
+
+Image Image::Morph(const Image& img, int channel, const std::string& type, int iterations)
+{
+    std::vector<unsigned char> morphData = Morpho(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, channel, type, iterations);
+
+    Image morphImage = Image(img.m_width, img.m_height, img.m_bytesPerPixel);
+    morphImage.m_data = morphData;
+
+    return morphImage;
+}
+
 //////////////////////////////////////////////////////////////////
 ///////////////////////// Histogram APIS /////////////////////////
 //////////////////////////////////////////////////////////////////

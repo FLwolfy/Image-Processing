@@ -217,3 +217,101 @@ std::vector<float> ConvolvePrecise(
 
     return convolvedData;
 }
+
+std::vector<bool> Mask(
+    const unsigned char* data,
+    int width, int height,
+    int bytesPerPixel,
+    int channel,
+    const std::vector<Kernel>& kernels
+) {
+    std::vector<bool> mask(width * height, false);
+
+    for (const Kernel& kernel : kernels) 
+    {
+        int kernelSize = kernel.size;
+        int halfSize = kernelSize / 2;
+
+        for (int y = 0; y < height; y++) 
+        {
+            for (int x = 0; x < width; x++) 
+            {
+                bool match = true;
+
+                for (int i = -halfSize; i <= halfSize; i++) 
+                {
+                    for (int j = -halfSize; j <= halfSize; j++) 
+                    {
+                        // Handle boundary cases
+                        int curX = std::min(std::max(x + j, 0), width - 1);
+                        int curY = std::min(std::max(y + i, 0), height - 1);
+                        int curIndex = (curY * width + curX) * bytesPerPixel;
+
+                        // Convert pixel value to binary
+                        int pixelValue = data[curIndex + channel] == 0 ? 0 : 1;
+
+                        if (pixelValue != kernel[(i + halfSize) * kernelSize + (j + halfSize)]) 
+                        {
+                            match = false;
+                            break;
+                        }
+                    }
+                    if (!match) break;
+                }
+
+                if (match) 
+                {
+                    mask[y * width + x] = true;
+                }
+            }
+        }
+    }
+
+    return mask;
+}
+
+std::vector<bool> MaskBool(
+    const std::vector<bool>& data,
+    int width, int height,
+    const std::vector<Kernel>& kernels
+) {
+    std::vector<bool> mask(width * height, false);
+
+    for (const Kernel& kernel : kernels) 
+    {
+        int kernelSize = kernel.size;
+        int halfSize = kernelSize / 2;
+
+        for (int y = 0; y < height; y++) 
+        {
+            for (int x = 0; x < width; x++) 
+            {
+                bool match = true;
+
+                for (int i = -halfSize; i <= halfSize; i++) 
+                {
+                    for (int j = -halfSize; j <= halfSize; j++) 
+                    {
+                        int curX = std::min(std::max(x + j, 0), width - 1);
+                        int curY = std::min(std::max(y + i, 0), height - 1);
+                        int curIndex = curY * width + curX;
+
+                        if (data[curIndex] != kernel[(i + halfSize) * kernelSize + (j + halfSize)]) 
+                        {
+                            match = false;
+                            break;
+                        }
+                    }
+                    if (!match) break;
+                }
+
+                if (match) 
+                {
+                    mask[y * width + x] = true;
+                }
+            }
+        }
+    }
+
+    return mask;
+}
