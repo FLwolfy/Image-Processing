@@ -2,12 +2,14 @@
 
 #include <utils.h>
 
+#include <cmath>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdexcept>
 #include <algorithm>
 #include <vector>
 #include <iostream>
+#include <string>
 
 ///////////////////////// Regular processing functions /////////////////////////
 
@@ -222,7 +224,7 @@ std::vector<unsigned char> EqualizeHistogram(
     int flag = 0;
     for (int j = 0; j < binSize; j++) {
         for (int k = flag; k < 256; k++) {
-            if (cumulativeHist[channel * 256 + k] >= binNum * j) {
+            if (cumulativeHist[channel * 256 + k] >= (unsigned int)(binNum * j)) {
                 binColor[j] = k;
                 flag = k;
                 break;
@@ -388,8 +390,8 @@ std::vector<unsigned char> BilateralFilter(
     windowSize = windowSize % 2 == 0 ? windowSize + 1 : windowSize;
 
     int halfSize = windowSize / 2;
-    float spaceCoeff = -0.5 / (spaceSTD * spaceSTD);
-    float colorCoeff = -0.5 / (colorSTD * colorSTD);
+    float spaceCoeff = -0.5f / (spaceSTD * spaceSTD);
+    float colorCoeff = -0.5f / (colorSTD * colorSTD);
 
     for (int y = 0; y < height; y++) 
     {
@@ -408,8 +410,8 @@ std::vector<unsigned char> BilateralFilter(
                     int curY = std::min(std::max(y + i, 0), height - 1);
                     int curIndex = (curY * width + curX) * bytesPerPixel;
 
-                    float spaceDist = i * i + j * j;
-                    float colorDist = data[index + channel] - data[curIndex + channel];
+                    float spaceDist = float(i * i + j * j);
+                    float colorDist = float(data[index + channel] - data[curIndex + channel]);
 
                     float weight = std::exp(spaceDist * spaceCoeff + colorDist * colorCoeff);
                     sum += data[curIndex + channel] * weight;
@@ -444,7 +446,9 @@ std::vector<unsigned char> ToSobelEdge(
     int bytesPerPixel,
     int channel,
     int windowSize,
-    unsigned char threshold
+    const std::string& suppressedMethod,
+    const std::string& thresholdMethod,
+    const std::unordered_map<std::string, float>& thresholds
 ) {
     std::vector<unsigned char> edgeData(width * height * bytesPerPixel);
 
@@ -468,12 +472,157 @@ std::vector<unsigned char> ToSobelEdge(
             float gx = gradientX[index + channel];
             float gy = gradientY[index + channel];
             float gradient = std::sqrt(gx * gx + gy * gy);
+            float angle = abs(std::atan2(gy, gx) * 180 / 3.14159265358979323846f);
 
-            for (int i = 0; i < bytesPerPixel; i++) 
+            // Apply Suppressing
+            if (suppressedMethod == "none") {}
+            else if (suppressedMethod == "non-maximum") 
             {
+                int angleIndex;
+                if (angle <= 22.5 || angle > 157.5) angleIndex = 0;  // 0°
+                else if (angle > 22.5 && angle <= 67.5) angleIndex = 1;  // 45°
+                else if (angle > 67.5 && angle <= 112.5) angleIndex = 2;  // 90°
+                else angleIndex = 3;  // 135°
+
+                int windowHalfSize = windowSize / 2;
+                std::vector<float> g(windowHalfSize * 2, 0);
+
+                switch (angleIndex)
+                {
+                    case 0:  // 0°
+                        for (int i = -windowHalfSize; i <= windowHalfSize; i++) 
+                        {
+                            if (i == 0 || x + i < 0 || x + i >= width) { continue; }
+                            int curIndex = (y * width + x + i) * bytesPerPixel;
+                            g.push_back(std::abs(gradientX[curIndex + channel]));
+                        }
+                        break;
+                    case 1:  // 45°
+                        for (int i = -windowHalfSize; i <= windowHalfSize; i++) 
+                        {
+                            if (i == 0 || x + i < 0 || x + i >= width || y + i < 0 || y + i >= height) { continue; }
+                            int curIndex = ((y + i) * width + x + i) * bytesPerPixel;
+                            g.push_back(std::abs(gradientX[curIndex + channel]));
+                        }
+                        break;
+                    case 2:  // 90°
+                        for (int i = -windowHalfSize; i <= windowHalfSize; i++) 
+                        {
+                            if (i == 0 || y + i < 0 || y + i >= height) { continue; }
+                            int curIndex = ((y + i) * width + x) * bytesPerPixel;
+                            g.push_back(std::abs(gradientY[curIndex + channel]));
+                        }
+                        break;
+                    case 3:  // 135°
+                        for (int i = -windowHalfSize; i <= windowHalfSize; i++) 
+                        {
+                            if (i == 0 || x + i < 0 || x + i >= width || y - i < 0 || y - i >= height) { continue; }
+                            int curIndex = ((y - i) * width + x + i) * bytesPerPixel;
+                            g.push_back(std::abs(gradientX[curIndex + channel]));
+                        }
+                        break;
+                }
+
+                if (!g.empty() && gradient < *std::max_element(g.begin(), g.end())) 
+                {
+                    gradient = 0;
+                }
+            }
+            else 
+            {
+                throw std::invalid_argument("Invalid suppressed method");
+            }
+
+            // Apply thresholding
+            unsigned char result;
+            if (thresholdMethod == "auto") 
+            {
+                float threshold = 0.15f * Max(data, width * height * bytesPerPixel);
+                if (gradient < threshold) 
+                {
+                    result = 0;
+                } 
+                else 
+                {
+                    result = 255;
+                }
+            }
+            else if (thresholdMethod == "manual") 
+            {
+                float threshold = thresholds.at("threshold");
+                if (gradient < threshold) 
+                {
+                    result = 0;
+                } 
+                else 
+                {
+                    result = 255;
+                }
+            }
+            else if (thresholdMethod == "hysteresis")
+            {
+                if (thresholds.find("low_threshold") == thresholds.end() || thresholds.find("high_threshold") == thresholds.end()) 
+                {
+                    throw std::invalid_argument("Missing low_threshold or high_threshold");
+                }
+
+                float lowThreshold = thresholds.at("low_threshold");
+                float highThreshold = thresholds.at("high_threshold");
+
+                if (gradient < lowThreshold) 
+                {
+                    result = 0;
+                } 
+                else if (gradient > highThreshold) 
+                {
+                    result = 255;
+                } 
+                else 
+                {
+                    // Check the 8 neighbors
+                    bool isEdge = false;
+                    for (int i = -1; i <= 1; i++) 
+                    {
+                        for (int j = -1; j <= 1; j++) 
+                        {
+                            if (i == 0 && j == 0) { continue; }
+                            if (x + j < 0 || x + j >= width || y + i < 0 || y + i >= height) { continue; }
+
+                            int curX = std::min(std::max(x + j, 0), width - 1);
+                            int curY = std::min(std::max(y + i, 0), height - 1);
+                            int curIndex = (curY * width + curX) * bytesPerPixel;
+
+                            if (gradient > abs(gradientX[curIndex + channel]) && gradient > abs(gradientY[curIndex + channel])) 
+                            {
+                                isEdge = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    // If connected to a strong edge, keep the edge
+                    if (isEdge) 
+                    {
+                        result = 255;
+                    }
+                    // Else, remove the edge
+                    else 
+                    {
+                        result = 0;
+                    }
+                }
+            }
+            else 
+            {
+                throw std::invalid_argument("Invalid threshold method");
+            }
+
+            // Apply the result to the edge data
+            for (int i = 0; i < bytesPerPixel; i++) 
+            {  
                 if (i == channel)
                 {
-                    edgeData[index + i] = gradient > threshold ? 255 : 0;
+                    edgeData[index + i] = result;
                 }
                 else
                 {
@@ -493,7 +642,7 @@ std::vector<unsigned char> ToLaplacianEdge(
     int bytesPerPixel,
     int channel,
     int windowSize,
-    unsigned char noise
+    float threshold
 ) {
     std::vector<unsigned char> edgeData(width * height * bytesPerPixel);
 
@@ -504,27 +653,32 @@ std::vector<unsigned char> ToLaplacianEdge(
     windowSize = windowSize % 2 == 0 ? windowSize + 1 : windowSize;
 
     Kernel kernel = Kernel::Laplacian(windowSize);
-    std::vector<float> gradient = ConvolvePrecise(data, width, height, bytesPerPixel, channel, kernel);
+    std::vector<float> laplacian = ConvolvePrecise(data, width, height, bytesPerPixel, channel, kernel);
 
     for (int y = 0; y < height; y++)
     {
         for (int x = 0; x < width; x++) 
         {
             int index = (y * width + x) * bytesPerPixel;
-            float gradientValue = gradient[index + channel];
+            float gradient = std::abs(laplacian[index + channel]);
 
-            for (int i = 0; i < bytesPerPixel; i++) 
+            // Apply thresholding
+            unsigned char result;
+            if (gradient <= threshold) 
             {
+                result = 0;
+            } 
+            else 
+            {
+                result = 255;
+            } 
+
+            // Apply the result to the edge data
+            for (int i = 0; i < bytesPerPixel; i++) 
+            {  
                 if (i == channel)
                 {
-                    if (gradientValue > -noise && gradientValue < noise)
-                    {
-                        edgeData[index + i] = 0;
-                    }
-                    else
-                    {
-                        edgeData[index + i] = 255;
-                    }
+                    edgeData[index + i] = result;
                 }
                 else
                 {

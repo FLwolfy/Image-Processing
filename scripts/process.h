@@ -1,6 +1,8 @@
 #pragma once
 
 #include <vector>
+#include <string>
+#include <unordered_map>
 
 ///////////////////////// Regular processing functions /////////////////////////
 
@@ -101,9 +103,9 @@ std::vector<unsigned char> ToSobelEdge(
     int bytesPerPixel,
     int channel,
     int windowSize,
-    const char* thresholdMethod,
-    unsigned char lowThreshold = 0,   // Only used for Hysteresis Thresholding
-    unsigned char highThreshold = 0 
+    const std::string& suppressedMethod,
+    const std::string& thresholdMethod,
+    const std::unordered_map<std::string, float>& thresholds
 );
 
 std::vector<unsigned char> ToLaplacianEdge(
@@ -112,5 +114,5 @@ std::vector<unsigned char> ToLaplacianEdge(
     int bytesPerPixel,
     int channel,
     int windowSize,
-    unsigned char noise
+    float threshold
 );

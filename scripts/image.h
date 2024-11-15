@@ -5,6 +5,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string>
+#include <unordered_map>
 #include <vector>
 
 class Image
@@ -23,22 +25,25 @@ public:
     std::vector<unsigned int> GetHist() const;
     std::vector<unsigned int> GetCumulativeHist() const;
 
-    // Image processing functions
+    // Regular processing functions
     static Image ChannelSeparate(const Image& img, int channel);
     static Image GrayScale(const Image& img);
     static Image Negative(const Image& img);
     static Image WaterMark(const Image& img, const Image& watermark, int offsetX, int offsetY, unsigned char threshold, float blendRate);
     
+    // Enhancement functions
     static Image LinearScale(const Image& img, int channel, int min, int max);
     static Image HistEqualize(const Image& img, int channel, int binSize);
 
+    // Noise Removal functions
     static Image MeanDenoise(const Image& img, int channel, int windowSize);
     static Image MedianDenoise(const Image& img, int channel, int windowSize, bool pseudo);
     static Image GaussianDenoise(const Image& img, int channel, int windowSize, float STD);
     static Image BilateralDenoise(const Image& img, int channel, int windowSize, float spaceSTD, float colorSTD);
 
-    static Image SobelEdge(const Image& img, int channel, int windowSize, unsigned char threshold);
-    static Image LaplacianEdge(const Image& img, int channel, int windowSize, unsigned char threshold);
+    // Edge Detection functions
+    static Image SobelEdge(const Image& img, int channel, int windowSize, const std::string& suppressedMethod = "none", const std::string& thresholdMethod = "auto", const std::unordered_map<std::string, float>& thresholds = {});
+    static Image LaplacianEdge(const Image& img, int channel, int windowSize, float noise);
 
 public:
     std::vector<unsigned char> m_data;

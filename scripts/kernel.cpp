@@ -1,13 +1,15 @@
 #include <kernel.h>
 
+#include <cmath>
 #include <vector>
+#include <stdexcept>
 
 ///////////////////////// Constructor /////////////////////////
 
 Kernel::Kernel(std::vector<float> initValues) 
     : values(initValues)
 {
-    size = static_cast<int>(sqrt(values.size()));
+    size = (int)(sqrt((double)values.size()));
 
     if (size * size != values.size()) 
     {
@@ -23,7 +25,7 @@ Kernel::Kernel(std::vector<float> initValues)
 Kernel::Kernel(std::initializer_list<float> initValues) 
     : values(initValues)
 {
-    size = static_cast<int>(sqrt(values.size()));
+    size = (int)(sqrt((double)values.size()));
 
     if (size * size != values.size()) 
     {
@@ -159,7 +161,7 @@ Kernel Kernel::Mean(int size)
         throw std::invalid_argument("Kernel size must be an odd number greater than or equal to 3.");
     }
 
-    std::vector<float> kernel(size * size, 1.0 / (size * size));
+    std::vector<float> kernel(size * size, 1.0f / (float)(size * size));
 
     return Kernel(kernel, size);
 }
@@ -179,7 +181,7 @@ Kernel Kernel::Gaussian(float sigma, int size)
     {
         for (int j = -halfSize; j <= halfSize; j++) 
         {
-            kernel[(i + halfSize) * size + (j + halfSize)] = exp(-(i * i + j * j) / (2 * sigma * sigma));
+            kernel[(i + halfSize) * size + (j + halfSize)] = (float)exp(-(i * i + j * j) / (2 * sigma * sigma));
             sum += kernel[(i + halfSize) * size + (j + halfSize)];
         }
     }

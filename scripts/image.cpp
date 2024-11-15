@@ -113,9 +113,9 @@ Image Image::BilateralDenoise(const Image& img, int channel, int windowSize, flo
 
 ////////////// Edge Detection functions //////////////
 
-Image Image::SobelEdge(const Image& img, int channel, int windowSize, unsigned char threshold)
+Image Image::SobelEdge(const Image& img, int channel, int windowSize, const std::string& suppressedMethod, const std::string& thresholdMethod, const std::unordered_map<std::string, float>& thresholds)
 {
-    std::vector<unsigned char> edgeData = ToSobelEdge(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, channel, windowSize, threshold);
+    std::vector<unsigned char> edgeData = ToSobelEdge(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, channel, windowSize, suppressedMethod, thresholdMethod, thresholds);
 
     Image edgeImage = Image(img.m_width, img.m_height, img.m_bytesPerPixel);
     edgeImage.m_data = edgeData;
@@ -123,9 +123,9 @@ Image Image::SobelEdge(const Image& img, int channel, int windowSize, unsigned c
     return edgeImage;
 }
 
-Image Image::LaplacianEdge(const Image& img, int channel, int windowSize, unsigned char threshold)
+Image Image::LaplacianEdge(const Image& img, int channel, int windowSize, float noise)
 {
-    std::vector<unsigned char> edgeData = ToLaplacianEdge(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, channel, windowSize, threshold);
+    std::vector<unsigned char> edgeData = ToLaplacianEdge(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, channel, windowSize, noise);
 
     Image edgeImage = Image(img.m_width, img.m_height, img.m_bytesPerPixel);
     edgeImage.m_data = edgeData;

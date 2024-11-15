@@ -16,20 +16,26 @@ def show_image(image: Image, title: str):
     plt.axis('off')
     plt.show()
         
-def show_images(images: list[Image], titles: list[str]):
+def show_images(images: list[Image], subtitles: list[str], title: str = None):
     """
     Plot multiple images with their respective titles.
     """
-    fig, axes = plt.subplots(1, len(images), figsize=(10, 5)) 
-    for i, (image, title) in enumerate(zip(images, titles)):
+    fig, axes = plt.subplots(1, len(images), figsize=(15, 18 / len(images)))
+    for i, (image, t) in enumerate(zip(images, subtitles)):
         if image.bytes_per_pixel == 1:
             axes[i].imshow(image.raw_data, cmap="gray", vmin=0, vmax=255)
         else:
             axes[i].imshow(image.raw_data)
-        wrapped_title = "\n".join(textwrap.wrap(title, width=20))
+        
+        ax_width = axes[i].get_window_extent().width
+        wrapped_title = "\n".join(textwrap.wrap(t, width=int(ax_width / 10)))
+        
         axes[i].set_title(wrapped_title)
         axes[i].axis('off')
-    plt.subplots_adjust(wspace=0.4)        
+    
+    if title:
+        plt.suptitle(title, fontsize=16)
+    plt.subplots_adjust(wspace=0.4) 
     plt.show()
     
 def plot_histogram(image: Image, title: str, channel: int=0, cumulative: bool=False):
@@ -50,7 +56,7 @@ def plot_histogram(image: Image, title: str, channel: int=0, cumulative: bool=Fa
     plt.ylabel('Number of Pixels')
     plt.show()
     
-def plot_histograms(images: list[Image], titles: str, channels: int=None, cumulative: bool=False):
+def plot_histograms(images: list[Image], subtitles: list[str], title: str = None, channels: list[int] = None, cumulative: bool = False):
     """
     Plot the histograms of multiple images.
     
@@ -59,17 +65,26 @@ def plot_histograms(images: list[Image], titles: str, channels: int=None, cumula
     - titles: A list of titles for the plots.
     - channels: A list of channels to plot the histograms for (default is 0 for all images).
     - cumulative: Whether to plot the cumulative histograms (default is False).
+    - main_title: The main title for the plot.
     """
     if channels is None:
         channels = [0] * len(images)
-    fig, axes = plt.subplots(1, len(images), figsize=(10, 5))
-    for i, (image, title, channel) in enumerate(zip(images, titles, channels)):
+    fig, axes = plt.subplots(1, len(images), figsize=(15, 18 / len(images)))
+    for i, (image, t, channel) in enumerate(zip(images, subtitles, channels)):
         histogram = image.get_cumulative_hist()[channel] if cumulative else image.get_hist()[channel]
         axes[i].bar(range(256), histogram, width=1, edgecolor='black')
-        wrapped_title = "\n".join(textwrap.wrap(title, width=20))
+        
+        # Calculate the appropriate width for wrapping the title
+        ax_width = axes[i].get_window_extent().width
+        wrapped_title = "\n".join(textwrap.wrap(t, width=int(ax_width / 10)))
+        
         axes[i].set_title(wrapped_title)
         axes[i].set_xlabel('Gray Scale Value')
         axes[i].set_ylabel('Number of Pixels')
+    
+    if title:
+        fig.suptitle(title, fontsize=16)
+    
     plt.subplots_adjust(wspace=0.4)
     plt.show()
     

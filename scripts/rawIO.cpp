@@ -7,10 +7,11 @@
 
 void InputRaw(unsigned char* data, const char* inputPath, int width, int height, int bytesPerPixel) 
 {
-    FILE* file;
+    FILE* file = nullptr;
     int dataSize = width * height * bytesPerPixel;
 
-    if (!(file = fopen(inputPath, "rb"))) 
+    errno_t err = fopen_s(&file, inputPath, "rb");
+    if (err != 0) 
     {
         throw std::runtime_error(std::string("Cannot open file: ") + inputPath + "\nFailed to load image");
     }
@@ -21,10 +22,11 @@ void InputRaw(unsigned char* data, const char* inputPath, int width, int height,
 
 void OutputRaw(const unsigned char* data, const char* outputPath, int width, int height, int bytesPerPixel) 
 {
-    FILE* file;
+    FILE* file = nullptr;
     int dataSize = width * height * bytesPerPixel;
 
-    if (!(file = fopen(outputPath, "wb"))) 
+    errno_t err = fopen_s(&file, outputPath, "wb");
+    if (err != 0) 
     {
         throw std::runtime_error(std::string("Cannot open file: ") + outputPath + "\nFailed to load image");
     }
