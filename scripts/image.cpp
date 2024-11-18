@@ -135,9 +135,29 @@ Image Image::LaplacianEdge(const Image& img, int channel, int windowSize, float 
 
 ////////////// Morphological functions //////////////
 
-Image Image::Morph(const Image& img, int channel, const std::string& type, int iterations)
+Image Image::Shrink(const Image& img, int channel, int iterations)
 {
-    std::vector<unsigned char> morphData = Morpho(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, channel, type, iterations);
+    std::vector<unsigned char> morphData = Morpho(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, channel, "shrink", iterations);
+
+    Image morphImage = Image(img.m_width, img.m_height, img.m_bytesPerPixel);
+    morphImage.m_data = morphData;
+
+    return morphImage;
+}
+
+Image Image::Thin(const Image& img, int channel, int iterations)
+{
+    std::vector<unsigned char> morphData = Morpho(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, channel, "thin", iterations);
+
+    Image morphImage = Image(img.m_width, img.m_height, img.m_bytesPerPixel);
+    morphImage.m_data = morphData;
+
+    return morphImage;
+}
+
+Image Image::Skeletonize(const Image& img, int channel, int iterations)
+{
+    std::vector<unsigned char> morphData = Morpho(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, channel, "skeletonize", iterations);
 
     Image morphImage = Image(img.m_width, img.m_height, img.m_bytesPerPixel);
     morphImage.m_data = morphData;

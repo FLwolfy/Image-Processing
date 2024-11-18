@@ -68,5 +68,7 @@ PYBIND11_MODULE(image_processing, m)
         .def_static("laplacian_edge", &Image::LaplacianEdge, py::arg("img"), py::arg("channel"), py::arg("window_size"), py::arg("noise"))
 
         // Morphological functions
-        .def_static("morph", &Image::Morph, py::arg("img"), py::arg("channel"), py::arg("type"), py::arg("iterations") = 8);
+        .def_static("shrink", &Image::Shrink, py::arg("img"), py::arg("channel"), py::arg("iterations") = 8)
+        .def_static("thin", &Image::Thin, py::arg("img"), py::arg("channel"), py::arg("iterations") = 8)
+        .def_static("skeletonize", &Image::Skeletonize, py::arg("img"), py::arg("channel"), py::arg("iterations") = 8);
 }

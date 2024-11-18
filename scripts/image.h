@@ -46,7 +46,9 @@ public:
     static Image LaplacianEdge(const Image& img, int channel, int windowSize, float noise);
     
     // Morphological functions
-    static Image Morph(const Image& img, int channel, const std::string& type, int iterations = 8);
+    static Image Shrink(const Image& img, int channel, int iterations = 8);
+    static Image Thin(const Image& img, int channel, int iterations = 8);
+    static Image Skeletonize(const Image& img, int channel, int iterations = 8);
 
 public:
     std::vector<unsigned char> m_data;
