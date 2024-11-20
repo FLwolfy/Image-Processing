@@ -135,20 +135,26 @@ std::vector<unsigned char> AddWatermark(
 std::vector<unsigned char> ToNegative(
     const unsigned char* data, 
     int width, int height, 
-    int bytesPerPixel
+    int bytesPerPixel,
+    int channel
 ) {
     std::vector<unsigned char> negativeData(width * height * bytesPerPixel);
-
-    int channel = bytesPerPixel < 3 ? 1 : 3;
 
     for (int y = 0; y < height; y++) 
     {
         for (int x = 0; x < width; x++) 
         {
             int index = (y * width + x) * bytesPerPixel;
-            for (int i = 0; i < channel; i++)
+            for (int i = 0; i < bytesPerPixel; i++)
             {
-                negativeData[index + i] = 255 - data[index + i];
+                if (i == channel)
+                {
+                    negativeData[index + i] = 255 - data[index + i];
+                } 
+                else 
+                {
+                    negativeData[index + i] = data[index + i];
+                }
             }
         }
     }
@@ -181,18 +187,23 @@ std::vector<unsigned char> ToLinearScale(
     }
 
     // Linear scale the channel
-    for (int y = 0; y < height; y++) {
-        for (int x = 0; x < width; x++) {
+    for (int y = 0; y < height; y++) 
+    {
+        for (int x = 0; x < width; x++) 
+        {
             int index = (y * width + x) * bytesPerPixel;
-            if (channelMax != channelMin) {
+            if (channelMax != channelMin) 
+            {
                 linearScaledData[index + channel] = static_cast<unsigned char>(
                     min + (data[index + channel] - channelMin) * (max - min) / (channelMax - channelMin)
                 );
-            } else {
+            } else 
+            {
                 linearScaledData[index + channel] = static_cast<unsigned char>(min);
             }
 
-            for (int i = 0; i < bytesPerPixel; i++) {
+            for (int i = 0; i < bytesPerPixel; i++) 
+            {
                 if (i != channel) {
                     linearScaledData[index + i] = data[index + i];
                 }
@@ -728,11 +739,79 @@ std::vector<unsigned char> Morpho(
                         // G = X ∩ [!M ∪ P]
                         morphedData[index + i] = morphedData[index + i] * (!masks[y * width + x] || preserved[y * width + x]);
                     } 
-                    else 
+                }
+            }
+        }
+    }
+
+    return morphedData;
+}
+
+std::vector<unsigned char> OpenClose(
+    const unsigned char* data,
+    int width, int height, 
+    int bytesPerPixel,
+    int channel,
+    bool open
+) {
+    std::vector<unsigned char> morphedData(data, data + width * height * bytesPerPixel);
+
+    channel = channel < 0 ? 0 : (channel >= bytesPerPixel ? bytesPerPixel - 1 : channel);
+
+    // Apply the opening/closing algorithm
+    std::vector<Kernel> erosion = Kernel::Pattern("erosion", true);
+    
+    for (int erodeNDilate = 0; erodeNDilate < 2; erodeNDilate++)
+    {
+        std::vector<bool> masks;
+
+        if (erodeNDilate == 0)
+        {
+            if (open)
+            {
+                // Erosion
+                masks = Mask(morphedData.data(), width, height, bytesPerPixel, channel, erosion);
+            }
+            else
+            {
+                // Dilation
+                std::vector<unsigned char> flipped = ToNegative(morphedData.data(), width, height, bytesPerPixel, channel);
+                masks = Mask(flipped.data(), width, height, bytesPerPixel, channel, erosion);
+                std::transform(masks.begin(), masks.end(), masks.begin(), [](bool val) {
+                    return !val;
+                });
+            }
+        }
+        else 
+        {
+            if (open)
+            {
+                // Dilation
+                std::vector<unsigned char> flipped = ToNegative(morphedData.data(), width, height, bytesPerPixel, channel);
+                masks = Mask(flipped.data(), width, height, bytesPerPixel, channel, erosion);
+                std::transform(masks.begin(), masks.end(), masks.begin(), [](bool val) {
+                    return !val;
+                });
+            }
+            else
+            {
+                // Erosion
+                masks = Mask(morphedData.data(), width, height, bytesPerPixel, channel, erosion);
+            }
+        }
+
+        for (int y = 0; y < height; y++) 
+        {
+            for (int x = 0; x < width; x++) 
+            {
+                int index = (y * width + x) * bytesPerPixel;
+                for (int i = 0; i < bytesPerPixel; i++) 
+                {
+                    if (i == channel) 
                     {
-                        // Keep the other channels
-                        morphedData[index + i] = morphedData[index + i];
-                    }
+                        // G = X ∩ M
+                        morphedData[index + i] = morphedData[index + i] * masks[y * width + x];
+                    } 
                 }
             }
         }

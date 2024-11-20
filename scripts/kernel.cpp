@@ -215,6 +215,7 @@ struct ConditionalPattern
     static const std::vector<std::vector<float>> STK9;
     static const std::vector<std::vector<float>> STK10;
     static const std::vector<std::vector<float>> K11;
+    static const std::vector<std::vector<float>> E;
 };
 
 struct UnconditionalPattern 
@@ -513,6 +514,11 @@ const std::vector<std::vector<float>> ConditionalPattern::K11 = {
          1, 1, 1, 
          1, 1, 1}
     };
+const std::vector<std::vector<float>> ConditionalPattern::E = {
+        {1, 1, 1, 
+         1, 1, 1, 
+         1, 1, 1}
+};
 
 // 0 -> 0; 1 -> 1; 2 -> 0 or 1; 3 -> At least one of them are 1.
 const std::vector<std::vector<float>> UnconditionalPattern::SP1 = {
@@ -833,7 +839,11 @@ std::vector<Kernel> Kernel::Pattern(const std::string& type, bool conditional)
             kernels.insert(kernels.end(), ConditionalPattern::STK9.begin(), ConditionalPattern::STK9.end());
             kernels.insert(kernels.end(), ConditionalPattern::STK10.begin(), ConditionalPattern::STK10.end());
             kernels.insert(kernels.end(), ConditionalPattern::K11.begin(), ConditionalPattern::K11.end());
-        } 
+        }
+        else if (type == "erosion")
+        {
+            kernels.insert(kernels.end(), ConditionalPattern::E.begin(), ConditionalPattern::E.end());
+        }
         else 
         {
             throw std::invalid_argument("Invalid conditional pattern type.");

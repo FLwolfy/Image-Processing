@@ -35,7 +35,8 @@ std::vector<unsigned char> AddWatermark(
 std::vector<unsigned char> ToNegative(
     const unsigned char* data, 
     int width, int height, 
-    int bytesPerPixel
+    int bytesPerPixel,
+    int channel
 );
 
 ///////////////////////// Enhancement functions /////////////////////////
@@ -126,4 +127,12 @@ std::vector<unsigned char> Morpho(
     int channel,
     const std::string& type,
     int iterations
+);
+
+std::vector<unsigned char> OpenClose(
+    const unsigned char* data,
+    int width, int height, 
+    int bytesPerPixel,
+    int channel,
+    bool open
 );

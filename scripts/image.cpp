@@ -26,9 +26,9 @@ Image Image::GrayScale(const Image &img)
     return grayImage;
 }
 
-Image Image::Negative(const Image& img)
+Image Image::Negative(const Image& img, int channel)
 {
-    std::vector<unsigned char> negativeData = ToNegative(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel);
+    std::vector<unsigned char> negativeData = ToNegative(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, channel);
 
     Image negativeImage = Image(img.m_width, img.m_height, img.m_bytesPerPixel);
     negativeImage.m_data = negativeData;
@@ -158,6 +158,26 @@ Image Image::Thin(const Image& img, int channel, int iterations)
 Image Image::Skeletonize(const Image& img, int channel, int iterations)
 {
     std::vector<unsigned char> morphData = Morpho(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, channel, "skeletonize", iterations);
+
+    Image morphImage = Image(img.m_width, img.m_height, img.m_bytesPerPixel);
+    morphImage.m_data = morphData;
+
+    return morphImage;
+}
+
+Image Image::Open(const Image& img, int channel)
+{
+    std::vector<unsigned char> morphData = OpenClose(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, channel, true);
+
+    Image morphImage = Image(img.m_width, img.m_height, img.m_bytesPerPixel);
+    morphImage.m_data = morphData;
+
+    return morphImage;
+}
+
+Image Image::Close(const Image& img, int channel)
+{
+    std::vector<unsigned char> morphData = OpenClose(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, channel, false);
 
     Image morphImage = Image(img.m_width, img.m_height, img.m_bytesPerPixel);
     morphImage.m_data = morphData;

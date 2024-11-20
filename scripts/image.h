@@ -28,7 +28,7 @@ public:
     // Regular processing functions
     static Image ChannelSeparate(const Image& img, int channel);
     static Image GrayScale(const Image& img);
-    static Image Negative(const Image& img);
+    static Image Negative(const Image& img, int channel);
     static Image WaterMark(const Image& img, const Image& watermark, int offsetX, int offsetY, unsigned char threshold, float blendRate);
     
     // Enhancement functions
@@ -49,6 +49,8 @@ public:
     static Image Shrink(const Image& img, int channel, int iterations = 8);
     static Image Thin(const Image& img, int channel, int iterations = 8);
     static Image Skeletonize(const Image& img, int channel, int iterations = 8);
+    static Image Open(const Image& img, int channel);
+    static Image Close(const Image& img, int channel);
 
 public:
     std::vector<unsigned char> m_data;
