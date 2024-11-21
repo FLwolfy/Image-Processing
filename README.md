@@ -61,21 +61,39 @@ Image(width: int, height: int, bytesPerPixel: int)
 
 - **[Channel Operations]**
   - `channel_separate(img: Image, channel: int)`: Separate a specific channel from the image.
-  - `gray_scale(img: Image)`: Convert the image to grayscale. 
-  - `negative(img: Image)`: Convert the image to its negative.
+  - `gray_scale(img: Image)`: Convert the image to grayscale.
+  - `negative(img: Image, channel: int = 0)`: Convert the image to its negative.
 
 - **[Image Enhancement]**
   - `water_mark(img: Image, watermark: Image, offset_x: int, offset_y: int, filter_white_threshold: int, blend_rate: float)`: Apply a watermark to the image.
-  - `linear_scale(img: Image, channel: int, min: int, max: int)`: Apply linear scaling to a specific channel. 
+  - `linear_scale(img: Image, channel: int, min: int, max: int)`: Apply linear scaling to a specific channel.
   - `hist_equalize(img: Image, channel: int, bin_size: int)`: Equalize the histogram of a specific channel.
 
 - **[Denoising Methods]**
-  - `mean_denoise(img: Image, channel: int, window_size: int)`: Apply mean denoising to a specific channel. 
+  - `mean_denoise(img: Image, channel: int, window_size: int)`: Apply mean denoising to a specific channel.
   - `median_denoise(img: Image, channel: int, window_size: int, pseudo: bool = False)`: Apply median denoising to a specific channel.
-  - `gaussian_denoise(img: Image, channel: int, window_size: int, STD: float)`: Apply Gaussian denoising to a specific channel. 
+  - `gaussian_denoise(img: Image, channel: int, window_size: int, STD: float)`: Apply Gaussian denoising to a specific channel.
   - `bilateral_denoise(img: Image, channel: int, window_size: int, space_STD: float, color_STD: float)`: Apply bilateral denoising to a specific channel.
- 
 ---
+- **[Edge Detection Methods]**
+  - `sobel_edge(img: Image, channel: int, window_size: int, suppressed_method: str = "none", threshold_method: str = "auto", thresholds: dict[str, float] = {})`: Apply Sobel edge detection to a specific channel.
+  - `laplacian_edge(img: Image, channel: int, window_size: int, noise: float)`: Apply Laplacian edge detection to a specific channel.
+
+- **[Morphological Operations]**
+  - `shrink(img: Image, channel: int, iterations: int = 8)`: Apply shrinking to a specific channel.
+  - `thin(img: Image, channel: int, iterations: int = 8)`: Apply thinning to a specific channel.
+  - `skeletonize(img: Image, channel: int, iterations: int = 8)`: Apply skeletonization to a specific channel.
+  - `erode(img: Image, channel: int, iterations: int = 8)`: Apply erosion to a specific channel.
+  - `dilate(img: Image, channel: int, iterations: int = 8)`: Apply dilation to a specific channel.
+  - `open(img: Image, channel: int)`: Apply opening to a specific channel.
+  - `close(img: Image, channel: int)`: Apply closing to a specific channel.
+
+- **[Digital Halftoning Methods]**
+  - `fixed_dither(img: Image, channel: int, threshold: int)`: Apply fixed threshold dithering to a specific channel.
+  - `random_dither(img: Image, channel: int, local_hash: bool = False, seed: int = 0)`: Apply random dithering to a specific channel.
+  - `bayer_dither(img: Image, channel: int, window_size: int, num_of_levels: int = 2)`: Apply Bayer matrix dithering to a specific channel.
+  - `cluster_dither(img: Image, channel: int, cluster_size: int)`: Apply clustered-dot dithering to a specific channel.
+  - `fsed_dither(img: Image, channel: int, method: str, param: float, serpentine: bool = False)`: Apply Floyd-Steinberg error diffusion dithering to a specific channel.
 
 ### Plotting Functions (Python)
 
@@ -84,14 +102,14 @@ The `plot.py` module provides functions for visualizing images and histograms.
 #### show_images
 ```python
 show_image(image: Image, title: str)
-show_images(images: list[Image], titles: list[str])
+show_images(images: list[Image], subtitles: list[str], title: str = None)
 ```
 Displays the image(s) in a single figure.
 
 #### plot_histograms
 ```python
 plot_histogram(image: Image, title: str, channel: int = 0, cumulative: bool = False)
-plot_histograms(images: list[Image], titles: list[str], channels: list[int] = None, cumulative: bool = False)
+plot_histograms(images: list[Image], subtitles: list[str], title: str = None, channels: list[int] = None, cumulative: bool = False)
 ```
 Plots histogram(s) for image(s).
 

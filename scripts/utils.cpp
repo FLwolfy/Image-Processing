@@ -116,6 +116,52 @@ std::vector<unsigned char> Sort(
     return sortedArray;
 }
 
+std::vector<unsigned char> Hash(
+    const unsigned char* data,
+    int width, int height,
+    int bytesPerPixel,
+    int channel,
+    unsigned long long seed
+) {
+    std::vector<unsigned char> hashedData(width * height);
+
+    // A prime number multiplier for mixing
+    const unsigned long long prime = 0x100000001B3;
+
+    // Loop through every pixel's channel
+    for (int y = 0; y < height; y++) 
+    {
+        for (int x = 0; x < width; x++) 
+        {
+            int idx = (y * width + x) * bytesPerPixel + channel;
+            unsigned char pixelValue = data[idx];
+
+            unsigned long long hash = seed;  // Initialize hash with seed value
+
+            // Mix pixel value with current hash using bitwise operations
+            hash ^= pixelValue;  // XOR with the pixel value to mix
+            hash *= prime;       // Multiply with a prime to spread out bits
+            
+            // Add coordinates (x, y) to further disperse the hash
+            hash ^= (x + y * width);  // XOR with the coordinate value to include spatial information
+            
+            // Additional randomizing transformations
+            hash += (hash << 21);  // Left shift and add to introduce non-linearity
+            hash ^= (hash >> 35);  // Right shift and XOR to break patterns
+            hash *= prime;         // Again multiply to disperse bits
+            
+            // Mask the hash to prevent overflow
+            hash ^= (hash >> 33);
+            hash *= prime;
+
+            // Store the resulting hash (keep it within byte range)
+            hashedData[y * width + x] = static_cast<unsigned char>(hash & 0xFF);
+        }
+    }
+
+    return hashedData;
+}
+
 std::vector<unsigned char> Convolve(
     const unsigned char* data,
     int width, int height,
@@ -123,7 +169,7 @@ std::vector<unsigned char> Convolve(
     int channel,
     const Kernel& kernel
 ) {
-    int kernelSize = kernel.size;
+    int kernelSize = kernel.m_size;
     int halfSize = kernelSize / 2;
 
     std::vector<unsigned char> convolvedData(width * height * bytesPerPixel);
@@ -174,7 +220,7 @@ std::vector<float> ConvolvePrecise(
     int channel,
     const Kernel& kernel
 ) {
-    int kernelSize = kernel.size;
+    int kernelSize = kernel.m_size;
     int halfSize = kernelSize / 2;
 
     std::vector<float> convolvedData(width * height * bytesPerPixel);
@@ -229,7 +275,7 @@ std::vector<bool> Mask(
 
     for (const Kernel& kernel : kernels) 
     {
-        int kernelSize = kernel.size;
+        int kernelSize = kernel.m_size;
         int halfSize = kernelSize / 2;
 
         for (int y = 0; y < height; y++) 
@@ -279,7 +325,7 @@ std::vector<bool> MaskBool(
 
     for (const Kernel& kernel : kernels) 
     {
-        int kernelSize = kernel.size;
+        int kernelSize = kernel.m_size;
         int halfSize = kernelSize / 2;
 
         for (int y = 0; y < height; y++) 

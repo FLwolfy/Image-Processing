@@ -125,14 +125,52 @@ std::vector<unsigned char> Morpho(
     int width, int height, 
     int bytesPerPixel,
     int channel,
-    const std::string& type,
+    int type, // 0: shrink, 1: thin, 2: skeletonize, 3: erosion, 4: dilation
     int iterations
 );
 
-std::vector<unsigned char> OpenClose(
-    const unsigned char* data,
+///////////////////////// Digital Halftoning functions /////////////////////////
+
+std::vector<unsigned char> FixedDithering(
+    const unsigned char* data, 
     int width, int height, 
     int bytesPerPixel,
     int channel,
-    bool open
+    unsigned char threshold
+);
+
+std::vector<unsigned char> RandomDithering(
+    const unsigned char* data, 
+    int width, int height, 
+    int bytesPerPixel,
+    int channel,
+    bool localHash,
+    unsigned long long seed
+);
+
+std::vector<unsigned char> ClusterDithering(
+    const unsigned char* data, 
+    int width, int height, 
+    int bytesPerPixel,
+    int channel,
+    int clusterSize
+);
+
+std::vector<unsigned char> BayerDithering(
+    const unsigned char* data, 
+    int width, int height, 
+    int bytesPerPixel,
+    int channel,
+    int bayerSize,
+    int numOfLevels
+);
+
+std::vector<unsigned char> FloydSteinbergEDD(
+    const unsigned char* data,
+    int width, int height,
+    int bytesPerPixel,
+    int channel,
+    const std::string& ditherMethod,
+    int param, // fixed, then input "threshold"; bayer, then input "size"
+    bool serpentine
 );

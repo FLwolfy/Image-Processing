@@ -10,6 +10,7 @@
 #include <vector>
 #include <iostream>
 #include <string>
+#include <random>
 
 ///////////////////////// Regular processing functions /////////////////////////
 
@@ -710,16 +711,31 @@ std::vector<unsigned char> Morpho(
     int width, int height, 
     int bytesPerPixel,
     int channel,
-    const std::string& type,
+    int type,
     int iterations
 ) {
     std::vector<unsigned char> morphedData(data, data + width * height * bytesPerPixel);
+    Kernel::PatternType patternType;
 
     channel = channel < 0 ? 0 : (channel >= bytesPerPixel ? bytesPerPixel - 1 : channel);
+    if (type < 0 || type > 4) 
+    {
+        throw std::invalid_argument("Invalid morphological type");
+    }
+    else if (type == 4)
+    {
+        // Dilation is the same as erosion with the negative image
+        patternType = Kernel::PatternType::EROSION;
+        morphedData = ToNegative(data, width, height, bytesPerPixel, channel);
+    }
+    else
+    {
+        patternType = (Kernel::PatternType)type;
+    }
 
-    // Apply the shrinking algorithm
-    std::vector<Kernel> conditional = Kernel::Pattern(type, true);
-    std::vector<Kernel> unconditional = Kernel::Pattern(type, false);
+    // Apply the algorithm
+    std::vector<Kernel> conditional = Kernel::Patterns(patternType, true);
+    std::vector<Kernel> unconditional = Kernel::Patterns(patternType, false);
 
     for (int iter = 0; iter < iterations; iter++) 
     {
@@ -737,85 +753,303 @@ std::vector<unsigned char> Morpho(
                     if (i == channel) 
                     {
                         // G = X ∩ [!M ∪ P]
-                        morphedData[index + i] = morphedData[index + i] * (!masks[y * width + x] || preserved[y * width + x]);
+                        if (type >= 3)
+                        {
+                            morphedData[index + i] *= masks[y * width + x];
+                        }
+                        else
+                        {
+                            morphedData[index + i] *= (!masks[y * width + x] || preserved[y * width + x]);
+                        }     
                     } 
                 }
             }
         }
     }
 
+    if (type == 4) 
+    {
+        // Dilation is the same as erosion with the negative image
+        morphedData = ToNegative(morphedData.data(), width, height, bytesPerPixel, channel);
+    }
+    
     return morphedData;
 }
 
-std::vector<unsigned char> OpenClose(
-    const unsigned char* data,
+///////////////////////// Digital Halftoning functions /////////////////////////
+
+std::vector<unsigned char> FixedDithering(
+    const unsigned char* data, 
     int width, int height, 
     int bytesPerPixel,
     int channel,
-    bool open
+    unsigned char threshold
 ) {
-    std::vector<unsigned char> morphedData(data, data + width * height * bytesPerPixel);
+    std::vector<unsigned char> ditheredData(width * height * bytesPerPixel);
 
     channel = channel < 0 ? 0 : (channel >= bytesPerPixel ? bytesPerPixel - 1 : channel);
 
-    // Apply the opening/closing algorithm
-    std::vector<Kernel> erosion = Kernel::Pattern("erosion", true);
-    
-    for (int erodeNDilate = 0; erodeNDilate < 2; erodeNDilate++)
+    // Apply the fixed dithering algorithm
+    for (int y = 0; y < height; y++) 
     {
-        std::vector<bool> masks;
-
-        if (erodeNDilate == 0)
+        for (int x = 0; x < width; x++) 
         {
-            if (open)
+            int index = (y * width + x) * bytesPerPixel;
+            for (int i = 0; i < bytesPerPixel; i++) 
             {
-                // Erosion
-                masks = Mask(morphedData.data(), width, height, bytesPerPixel, channel, erosion);
-            }
-            else
-            {
-                // Dilation
-                std::vector<unsigned char> flipped = ToNegative(morphedData.data(), width, height, bytesPerPixel, channel);
-                masks = Mask(flipped.data(), width, height, bytesPerPixel, channel, erosion);
-                std::transform(masks.begin(), masks.end(), masks.begin(), [](bool val) {
-                    return !val;
-                });
-            }
-        }
-        else 
-        {
-            if (open)
-            {
-                // Dilation
-                std::vector<unsigned char> flipped = ToNegative(morphedData.data(), width, height, bytesPerPixel, channel);
-                masks = Mask(flipped.data(), width, height, bytesPerPixel, channel, erosion);
-                std::transform(masks.begin(), masks.end(), masks.begin(), [](bool val) {
-                    return !val;
-                });
-            }
-            else
-            {
-                // Erosion
-                masks = Mask(morphedData.data(), width, height, bytesPerPixel, channel, erosion);
-            }
-        }
-
-        for (int y = 0; y < height; y++) 
-        {
-            for (int x = 0; x < width; x++) 
-            {
-                int index = (y * width + x) * bytesPerPixel;
-                for (int i = 0; i < bytesPerPixel; i++) 
+                if (i == channel) 
                 {
-                    if (i == channel) 
-                    {
-                        // G = X ∩ M
-                        morphedData[index + i] = morphedData[index + i] * masks[y * width + x];
-                    } 
+                    ditheredData[index + i] = data[index + i] > threshold ? 255 : 0;
+                } 
+                else 
+                {
+                    // Keep the other channels
+                    ditheredData[index + i] = data[index + i];
                 }
             }
         }
     }
 
-    return morphedData;
+    return ditheredData;
+}
+
+std::vector<unsigned char> RandomDithering(
+    const unsigned char* data, 
+    int width, int height, 
+    int bytesPerPixel,
+    int channel,
+    bool localHash,
+    unsigned long long seed
+) {
+    std::vector<unsigned char> ditheredData(width * height * bytesPerPixel);
+    std::vector<unsigned char> hashedData(width * height);
+
+    channel = channel < 0 ? 0 : (channel >= bytesPerPixel ? bytesPerPixel - 1 : channel);
+
+    if (localHash) 
+    {
+        hashedData = Hash(data, width, height, bytesPerPixel, channel, seed);
+    }
+    else
+    {
+        std::mt19937 gen(seed);
+        std::uniform_int_distribution<> dis(0, 255);
+        for (int i = 0; i < width * height; ++i) 
+        {
+            hashedData[i] = dis(gen);
+        }
+    }
+
+
+    for (int y = 0; y < height; y++) 
+    {
+        for (int x = 0; x < width; x++) 
+        {
+            int index = (y * width + x) * bytesPerPixel;
+            for (int i = 0; i < bytesPerPixel; i++) 
+            {
+                if (i == channel) 
+                {
+                    ditheredData[index + i] = data[index + i] > hashedData[y * width + x] ? 255 : 0;
+                } 
+                else 
+                {
+                    // Keep the other channels
+                    ditheredData[index + i] = data[index + i];
+                }
+            }
+        }
+    }
+
+    return ditheredData;
+}
+
+std::vector<unsigned char> ClusterDithering(
+    const unsigned char* data, 
+    int width, int height, 
+    int bytesPerPixel,
+    int channel,
+    int clusterSize
+) {
+    std::vector<unsigned char> ditheredData(width * height * bytesPerPixel);
+
+    channel = channel < 0 ? 0 : (channel >= bytesPerPixel ? bytesPerPixel - 1 : channel);
+
+    // Apply the cluster dithering algorithm
+    for (int y = 0; y < height; y += clusterSize) 
+    {
+        for (int x = 0; x < width; x += clusterSize) 
+        {
+            int clusterSum = 0;
+            for (int i = 0; i < clusterSize; i++) 
+            {
+                for (int j = 0; j < clusterSize; j++) 
+                {
+                    int curX = std::min(std::max(x + j, 0), width - 1);
+                    int curY = std::min(std::max(y + i, 0), height - 1);
+                    int curIndex = (curY * width + curX) * bytesPerPixel;
+
+                    clusterSum += data[curIndex + channel];
+                }
+            }
+
+            int clusterAvg = clusterSum / (clusterSize * clusterSize);
+            for (int i = 0; i < clusterSize; i++) 
+            {
+                for (int j = 0; j < clusterSize; j++) 
+                {
+                    int curX = std::min(std::max(x + j, 0), width - 1);
+                    int curY = std::min(std::max(y + i, 0), height - 1);
+                    int curIndex = (curY * width + curX) * bytesPerPixel;
+
+                    for (int k = 0; k < bytesPerPixel; k++) 
+                    {
+                        if (k == channel) 
+                        {
+                            ditheredData[curIndex + k] = data[curIndex + k] > clusterAvg ? 255 : 0;
+                        } 
+                        else 
+                        {
+                            // Keep the other channels
+                            ditheredData[curIndex + k] = data[curIndex + k];
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return ditheredData;
+}
+
+std::vector<unsigned char> BayerDithering(
+    const unsigned char* data, 
+    int width, int height, 
+    int bytesPerPixel,
+    int channel,
+    int bayerSize,
+    int numOfLevels
+) {
+    if (numOfLevels < 2) 
+    {
+        throw std::invalid_argument("numOfLevels must be at least 2.");
+    }
+
+    std::vector<unsigned char> ditheredData(width * height * bytesPerPixel);
+    Kernel bayerMatrix = Kernel::BayerThreshold(bayerSize);
+
+    std::vector<unsigned char> levels(numOfLevels);
+    for (int i = 0; i < numOfLevels; ++i) 
+    {
+        levels[i] = static_cast<unsigned char>(i * 255 / (numOfLevels - 1));
+    }
+
+    channel = channel < 0 ? 0 : (channel >= bytesPerPixel ? bytesPerPixel - 1 : channel);
+
+    for (int y = 0; y < height; y++) 
+    {
+        for (int x = 0; x < width; x++) 
+        {
+            int index = (y * width + x) * bytesPerPixel;
+
+            for (int i = 0; i < bytesPerPixel; i++) 
+            {
+                if (i == channel) 
+                {
+                    // Normalize Bayer matrix threshold
+                    float bayerThreshold = bayerMatrix[(y % bayerSize) * bayerSize + (x % bayerSize)] * (255 / (numOfLevels - 1));
+
+                    // Map pixel to the nearest level
+                    unsigned char pixelValue = data[index + i];
+                    unsigned char newLevel = 0;
+                    for (int j = 0; j < numOfLevels - 1; ++j) 
+                    {
+                        if (pixelValue >= levels[j] && pixelValue <= levels[j + 1]) 
+                        {
+                            newLevel = (pixelValue - levels[j] > bayerThreshold) ? levels[j + 1] : levels[j];
+                            break;
+                        }
+                    }
+
+                    ditheredData[index + i] = newLevel;
+                } 
+                else 
+                {
+                    ditheredData[index + i] = data[index + i];
+                }
+            }
+        }
+    }
+
+    return ditheredData;
+}
+
+std::vector<unsigned char> FloydSteinbergEDD(
+    const unsigned char* data,
+    int width, int height,
+    int bytesPerPixel,
+    int channel,
+    const std::string& ditherMethod,
+    int param,
+    bool serpentine
+) {
+    std::vector<unsigned char> errorDiffusedData(data, data + width * height * bytesPerPixel);
+    Kernel FSMatrix = Kernel::FloydSteinberg();
+    Kernel BayerMatrix = Kernel::BayerThreshold(2);
+    if (param != 2 && ditherMethod == "bayer") BayerMatrix = Kernel::BayerThreshold(param);
+
+    channel = channel < 0 ? 0 : (channel >= bytesPerPixel ? bytesPerPixel - 1 : channel);
+
+    // Apply the Floyd-Steinberg error diffusion algorithm with serpentine scanning
+    for (int y = 0; y < height; y++) {
+        int startX, endX, step;
+        if (serpentine) {
+            // Serpentine scanning
+            startX = (y % 2 == 0) ? 0 : width - 1;
+            endX = (y % 2 == 0) ? width : -1;
+            step = (y % 2 == 0) ? 1 : -1;
+        } else {
+            // Standard scanning
+            startX = 0;
+            endX = width;
+            step = 1;
+        }
+
+        for (int x = startX; x != endX; x += step) {
+            int index = (y * width + x) * bytesPerPixel;
+            unsigned char oldPixel = errorDiffusedData[index + channel];
+            unsigned char newPixel;
+            if (ditherMethod == "fixed") newPixel = oldPixel > (unsigned char)param ? 255 : 0;
+            else if (ditherMethod == "bayer") newPixel = oldPixel > BayerMatrix[(y % 2) * 2 + (x % 2)] * 255 ? 255 : 0;
+            else throw std::invalid_argument("Invalid dither method");
+            int error = oldPixel - newPixel;
+
+            // Update the pixel with the new value
+            errorDiffusedData[index + channel] = newPixel;
+
+            // Diffuse the error to the neighboring pixels
+            if (x + 1 < width) 
+            {
+                int result = errorDiffusedData[index + bytesPerPixel + channel] + error * FSMatrix[5];
+                errorDiffusedData[index + bytesPerPixel + channel] = std::min(255, std::max(0, result));
+            }
+            if (x - 1 >= 0 && y + 1 < height) 
+            {
+                int result = errorDiffusedData[(y + 1) * width * bytesPerPixel + (x - 1) * bytesPerPixel + channel] + error * FSMatrix[6];
+                errorDiffusedData[(y + 1) * width * bytesPerPixel + (x - 1) * bytesPerPixel + channel] = std::min(255, std::max(0, result));
+            }
+            if (y + 1 < height) 
+            {
+                int result = errorDiffusedData[(y + 1) * width * bytesPerPixel + x * bytesPerPixel + channel] + error * FSMatrix[7];
+                errorDiffusedData[(y + 1) * width * bytesPerPixel + x * bytesPerPixel + channel] = std::min(255, std::max(0, result));
+            }
+            if (x + 1 < width && y + 1 < height) 
+            {
+                int result = errorDiffusedData[(y + 1) * width * bytesPerPixel + (x + 1) * bytesPerPixel + channel] + error * FSMatrix[8];
+                errorDiffusedData[(y + 1) * width * bytesPerPixel + (x + 1) * bytesPerPixel + channel] = std::min(255, std::max(0, result));
+            }
+        }
+    }
+
+    return errorDiffusedData;
 }

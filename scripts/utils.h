@@ -21,6 +21,14 @@ std::vector<unsigned char> Sort(
     int length
 );
 
+std::vector<unsigned char> Hash(
+    const unsigned char* data,
+    int width, int height,
+    int bytesPerPixel,
+    int channel,
+    unsigned long long seed
+);
+
 std::vector<unsigned char> Convolve(
     const unsigned char* data,
     int width, int height,

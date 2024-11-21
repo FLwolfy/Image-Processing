@@ -12,9 +12,9 @@ public:
     Kernel(std::initializer_list<float> initValues, int size);
 
     // Conversion Operators
-    operator std::vector<float>() const { return values; }
-    float& operator[](size_t index) { return values[index]; }
-    const float& operator[](size_t index) const { return values[index]; }
+    operator std::vector<float>() const { return m_values; }
+    float& operator[](size_t index) { return m_values[index]; }
+    const float& operator[](size_t index) const { return m_values[index]; }
 
     // Regular Kernel
     static Kernel Mean(int size);
@@ -25,11 +25,17 @@ public:
     static Kernel Laplacian(int size);
 
     // Morphological Kernel
-    static std::vector<Kernel> Pattern(const std::string& type, bool conditional);
+    enum PatternType { SHRINK, THIN, SKELETONIZE, EROSION };
+    static std::vector<Kernel> Patterns(PatternType type, bool conditional);
+
+    // Dithering Kernel
+    static Kernel BayerIndex(int size);
+    static Kernel BayerThreshold(int size);
+    static Kernel FloydSteinberg();
 
 public:
-    std::vector<float> values;
-    int size;
+    std::vector<float> m_values;
+    int m_size;
 
 private:
     static std::vector<Kernel> GenerateAllPatterns(const std::vector<std::vector<float>>& patterns, int size);

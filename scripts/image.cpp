@@ -137,7 +137,7 @@ Image Image::LaplacianEdge(const Image& img, int channel, int windowSize, float 
 
 Image Image::Shrink(const Image& img, int channel, int iterations)
 {
-    std::vector<unsigned char> morphData = Morpho(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, channel, "shrink", iterations);
+    std::vector<unsigned char> morphData = Morpho(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, channel, 0, iterations);
 
     Image morphImage = Image(img.m_width, img.m_height, img.m_bytesPerPixel);
     morphImage.m_data = morphData;
@@ -147,7 +147,7 @@ Image Image::Shrink(const Image& img, int channel, int iterations)
 
 Image Image::Thin(const Image& img, int channel, int iterations)
 {
-    std::vector<unsigned char> morphData = Morpho(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, channel, "thin", iterations);
+    std::vector<unsigned char> morphData = Morpho(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, channel, 1, iterations);
 
     Image morphImage = Image(img.m_width, img.m_height, img.m_bytesPerPixel);
     morphImage.m_data = morphData;
@@ -157,7 +157,27 @@ Image Image::Thin(const Image& img, int channel, int iterations)
 
 Image Image::Skeletonize(const Image& img, int channel, int iterations)
 {
-    std::vector<unsigned char> morphData = Morpho(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, channel, "skeletonize", iterations);
+    std::vector<unsigned char> morphData = Morpho(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, channel, 2, iterations);
+
+    Image morphImage = Image(img.m_width, img.m_height, img.m_bytesPerPixel);
+    morphImage.m_data = morphData;
+
+    return morphImage;
+}
+
+Image Image::Erode(const Image& img, int channel, int iterations)
+{
+    std::vector<unsigned char> morphData = Morpho(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, channel, 3, iterations);
+
+    Image morphImage = Image(img.m_width, img.m_height, img.m_bytesPerPixel);
+    morphImage.m_data = morphData;
+
+    return morphImage;
+}
+
+Image Image::Dilate(const Image& img, int channel, int iterations)
+{
+    std::vector<unsigned char> morphData = Morpho(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, channel, 4, iterations);
 
     Image morphImage = Image(img.m_width, img.m_height, img.m_bytesPerPixel);
     morphImage.m_data = morphData;
@@ -167,22 +187,76 @@ Image Image::Skeletonize(const Image& img, int channel, int iterations)
 
 Image Image::Open(const Image& img, int channel)
 {
-    std::vector<unsigned char> morphData = OpenClose(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, channel, true);
+    std::vector<unsigned char> erodedData = Morpho(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, channel, 3, 1);
+    std::vector<unsigned char> openedData = Morpho(erodedData.data(), img.m_width, img.m_height, img.m_bytesPerPixel, channel, 4, 1);
 
     Image morphImage = Image(img.m_width, img.m_height, img.m_bytesPerPixel);
-    morphImage.m_data = morphData;
+    morphImage.m_data = openedData;
 
     return morphImage;
 }
 
 Image Image::Close(const Image& img, int channel)
 {
-    std::vector<unsigned char> morphData = OpenClose(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, channel, false);
+    std::vector<unsigned char> dilatedData = Morpho(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, channel, 4, 1);
+    std::vector<unsigned char> closedData = Morpho(dilatedData.data(), img.m_width, img.m_height, img.m_bytesPerPixel, channel, 3, 1);
 
     Image morphImage = Image(img.m_width, img.m_height, img.m_bytesPerPixel);
-    morphImage.m_data = morphData;
+    morphImage.m_data = closedData;
 
     return morphImage;
+}
+
+///////////// Digital Halftoning functions /////////////
+
+Image Image::FixedDither(const Image& img, int channel, unsigned char threshold)
+{
+    std::vector<unsigned char> ditheredData = FixedDithering(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, channel, threshold);
+
+    Image ditheredImage = Image(img.m_width, img.m_height, img.m_bytesPerPixel);
+    ditheredImage.m_data = ditheredData;
+
+    return ditheredImage;
+}
+
+Image Image::RandomDither(const Image& img, int channel, bool localHash, unsigned long long seed)
+{
+    std::vector<unsigned char> ditheredData = RandomDithering(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, channel, localHash, seed);
+
+    Image ditheredImage = Image(img.m_width, img.m_height, img.m_bytesPerPixel);
+    ditheredImage.m_data = ditheredData;
+
+    return ditheredImage;
+}
+
+Image Image::BayerDither(const Image& img, int channel, int windowSize, int numOfLevels)
+{
+    std::vector<unsigned char> ditheredData = BayerDithering(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, channel, windowSize, numOfLevels);
+
+    Image ditheredImage = Image(img.m_width, img.m_height, img.m_bytesPerPixel);
+    ditheredImage.m_data = ditheredData;
+
+    return ditheredImage;
+}
+
+Image Image::ClusterDither(const Image& img, int channel, int clusterSize)
+{
+    std::vector<unsigned char> ditheredData = ClusterDithering(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, channel, clusterSize);
+
+    Image ditheredImage = Image(img.m_width, img.m_height, img.m_bytesPerPixel);
+    ditheredImage.m_data = ditheredData;
+
+    return ditheredImage;
+}
+
+Image Image::FSEDDither(const Image& img, int channel, const std::string& method, int param, bool serpentine)
+{
+    std::vector<unsigned char> errorDiffusedData = FloydSteinbergEDD(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, channel, method, param, serpentine);
+
+    Image errorDiffusedImage = Image(img.m_width, img.m_height, img.m_bytesPerPixel);
+    errorDiffusedImage.m_data = errorDiffusedData;
+
+    return errorDiffusedImage;
 }
 
 //////////////////////////////////////////////////////////////////

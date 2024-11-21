@@ -28,11 +28,11 @@ public:
     // Regular processing functions
     static Image ChannelSeparate(const Image& img, int channel);
     static Image GrayScale(const Image& img);
-    static Image Negative(const Image& img, int channel);
+    static Image Negative(const Image& img, int channel = 0);
     static Image WaterMark(const Image& img, const Image& watermark, int offsetX, int offsetY, unsigned char threshold, float blendRate);
     
     // Enhancement functions
-    static Image LinearScale(const Image& img, int channel, int min, int max);
+    static Image LinearScale(const Image& img, int channel, int min = 0, int max = 255);
     static Image HistEqualize(const Image& img, int channel, int binSize);
 
     // Noise Removal functions
@@ -49,8 +49,17 @@ public:
     static Image Shrink(const Image& img, int channel, int iterations = 8);
     static Image Thin(const Image& img, int channel, int iterations = 8);
     static Image Skeletonize(const Image& img, int channel, int iterations = 8);
+    static Image Erode(const Image& img, int channel, int iterations = 8);
+    static Image Dilate(const Image& img, int channel, int iterations = 8);
     static Image Open(const Image& img, int channel);
     static Image Close(const Image& img, int channel);
+
+    // Digital Halftoning functions
+    static Image FixedDither(const Image& img, int channel, unsigned char threshold);
+    static Image RandomDither(const Image& img, int channel, bool localHash = false, unsigned long long seed = 0);
+    static Image BayerDither(const Image& img, int channel, int windowSize, int numOfLevels = 2);
+    static Image ClusterDither(const Image& img, int channel, int clusterSize);
+    static Image FSEDDither(const Image& img, int channel, const std::string& method, int param, bool serpentine = false);
 
 public:
     std::vector<unsigned char> m_data;

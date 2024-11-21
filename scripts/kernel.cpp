@@ -8,62 +8,37 @@
 ///////////////////////// Constructor /////////////////////////
 
 Kernel::Kernel(std::vector<float> initValues) 
-    : values(initValues)
+    : m_values(initValues)
 {
-    size = (int)(sqrt((double)values.size()));
-
-    if (size * size != values.size()) 
-    {
-        throw std::invalid_argument("Kernel size does not match the number of values.");
-    }
-
-    if (size < 3 || size % 2 == 0) 
-    {
-        throw std::invalid_argument("Kernel size must be an odd number greater than or equal to 3.");
-    }
+    m_size = (int)(sqrt((double)m_values.size()));
 }
 
 Kernel::Kernel(std::initializer_list<float> initValues) 
-    : values(initValues)
+    : m_values(initValues)
 {
-    size = (int)(sqrt((double)values.size()));
+    m_size = (int)(sqrt((double)m_values.size()));
 
-    if (size * size != values.size()) 
+    if (m_size * m_size != m_values.size()) 
     {
         throw std::invalid_argument("Kernel size does not match the number of values.");
-    }
-
-    if (size < 3 || size % 2 == 0) 
-    {
-        throw std::invalid_argument("Kernel size must be an odd number greater than or equal to 3.");
     }
 }
 
 Kernel::Kernel(std::vector<float> initValues, int size) 
-    : values(initValues), size(size)
+    : m_values(initValues), m_size(size)
 {
-    if (size * size != values.size()) 
+    if (size * size != m_values.size()) 
     {
         throw std::invalid_argument("Kernel size does not match the number of values.");
-    }
-
-    if (size < 3 || size % 2 == 0) 
-    {
-        throw std::invalid_argument("Kernel size must be an odd number greater than or equal to 3.");
     }
 }
 
 Kernel::Kernel(std::initializer_list<float> initValues, int size) 
-    : values(initValues), size(size)
+    : m_values(initValues), m_size(size)
 {
-    if (size * size != values.size()) 
+    if (size * size != m_values.size()) 
     {
         throw std::invalid_argument("Kernel size does not match the number of values.");
-    }
-
-    if (size < 3 || size % 2 == 0) 
-    {
-        throw std::invalid_argument("Kernel size must be an odd number greater than or equal to 3.");
     }
 }
 
@@ -216,6 +191,7 @@ struct ConditionalPattern
     static const std::vector<std::vector<float>> STK10;
     static const std::vector<std::vector<float>> K11;
     static const std::vector<std::vector<float>> E;
+    static const std::vector<std::vector<float>> D;
 };
 
 struct UnconditionalPattern 
@@ -517,7 +493,7 @@ const std::vector<std::vector<float>> ConditionalPattern::K11 = {
 const std::vector<std::vector<float>> ConditionalPattern::E = {
         {1, 1, 1, 
          1, 1, 1, 
-         1, 1, 1}
+         1, 1, 1},
 };
 
 // 0 -> 0; 1 -> 1; 2 -> 0 or 1; 3 -> At least one of them are 1.
@@ -736,7 +712,6 @@ const std::vector<std::vector<float>> UnconditionalPattern::DB = {  // Multiples
          2, 1, 0}
     };
 
-
 std::vector<Kernel> Kernel::GenerateAllPatterns(const std::vector<std::vector<float>>& patterns, int size)
 {
     std::vector<Kernel> result;
@@ -797,13 +772,13 @@ std::vector<Kernel> Kernel::GenerateAllPatterns(const std::vector<std::vector<fl
     return result;
 }
 
-std::vector<Kernel> Kernel::Pattern(const std::string& type, bool conditional) 
+std::vector<Kernel> Kernel::Patterns(PatternType type, bool conditional) 
 {
     std::vector<Kernel> kernels;
 
     if (conditional)
     {
-        if (type == "shrink") 
+        if (type == PatternType::SHRINK) 
         {
             kernels.insert(kernels.end(), ConditionalPattern::S1.begin(), ConditionalPattern::S1.end());
             kernels.insert(kernels.end(), ConditionalPattern::S2.begin(), ConditionalPattern::S2.end());
@@ -817,7 +792,7 @@ std::vector<Kernel> Kernel::Pattern(const std::string& type, bool conditional)
             kernels.insert(kernels.end(), ConditionalPattern::STK9.begin(), ConditionalPattern::STK9.end());
             kernels.insert(kernels.end(), ConditionalPattern::STK10.begin(), ConditionalPattern::STK10.end());
         } 
-        else if (type == "thin") 
+        else if (type == PatternType::THIN) 
         {
             kernels.insert(kernels.end(), ConditionalPattern::TK4.begin(), ConditionalPattern::TK4.end());
             kernels.insert(kernels.end(), ConditionalPattern::STK4.begin(), ConditionalPattern::STK4.end());
@@ -829,7 +804,7 @@ std::vector<Kernel> Kernel::Pattern(const std::string& type, bool conditional)
             kernels.insert(kernels.end(), ConditionalPattern::STK9.begin(), ConditionalPattern::STK9.end());
             kernels.insert(kernels.end(), ConditionalPattern::STK10.begin(), ConditionalPattern::STK10.end());
         }
-        else if (type == "skeletonize")
+        else if (type == PatternType::SKELETONIZE)
         {
             kernels.insert(kernels.end(), ConditionalPattern::TK4.begin(), ConditionalPattern::TK4.end());
             kernels.insert(kernels.end(), ConditionalPattern::STK4.begin(), ConditionalPattern::STK4.end());
@@ -840,7 +815,7 @@ std::vector<Kernel> Kernel::Pattern(const std::string& type, bool conditional)
             kernels.insert(kernels.end(), ConditionalPattern::STK10.begin(), ConditionalPattern::STK10.end());
             kernels.insert(kernels.end(), ConditionalPattern::K11.begin(), ConditionalPattern::K11.end());
         }
-        else if (type == "erosion")
+        else if (type == PatternType::EROSION)
         {
             kernels.insert(kernels.end(), ConditionalPattern::E.begin(), ConditionalPattern::E.end());
         }
@@ -859,7 +834,7 @@ std::vector<Kernel> Kernel::Pattern(const std::string& type, bool conditional)
         std::vector<Kernel> VB = GenerateAllPatterns(UnconditionalPattern::VB, 3);
         std::vector<Kernel> DB = GenerateAllPatterns(UnconditionalPattern::DB, 3);
 
-        if (type == "shrink") 
+        if (type == PatternType::SHRINK) 
         {
             kernels.insert(kernels.end(), UnconditionalPattern::SP1.begin(), UnconditionalPattern::SP1.end());
             kernels.insert(kernels.end(), UnconditionalPattern::S4C1.begin(), UnconditionalPattern::S4C1.end());
@@ -870,7 +845,7 @@ std::vector<Kernel> Kernel::Pattern(const std::string& type, bool conditional)
             kernels.insert(kernels.end(), VB.begin(), VB.end());
             kernels.insert(kernels.end(), DB.begin(), DB.end());
         } 
-        else if (type == "thin") 
+        else if (type == PatternType::THIN) 
         {
             kernels.insert(kernels.end(), UnconditionalPattern::SP1.begin(), UnconditionalPattern::SP1.end());
             kernels.insert(kernels.end(), UnconditionalPattern::S4C1.begin(), UnconditionalPattern::S4C1.end());
@@ -882,7 +857,7 @@ std::vector<Kernel> Kernel::Pattern(const std::string& type, bool conditional)
             kernels.insert(kernels.end(), VB.begin(), VB.end());
             kernels.insert(kernels.end(), DB.begin(), DB.end());
         } 
-        else if (type == "skeletonize") 
+        else if (type == PatternType::SKELETONIZE) 
         {
             kernels.insert(kernels.end(), UnconditionalPattern::SP1.begin(), UnconditionalPattern::SP1.end());
             kernels.insert(kernels.end(), UnconditionalPattern::SP2.begin(), UnconditionalPattern::SP2.end());
@@ -896,6 +871,7 @@ std::vector<Kernel> Kernel::Pattern(const std::string& type, bool conditional)
             kernels.insert(kernels.end(), VB.begin(), VB.end());
             kernels.insert(kernels.end(), DB.begin(), DB.end());
         } 
+        else if (type == PatternType::EROSION) {}
         else 
         {
             throw std::invalid_argument("Invalid unconditional pattern type.");
@@ -905,3 +881,65 @@ std::vector<Kernel> Kernel::Pattern(const std::string& type, bool conditional)
     return kernels;
 }
 
+///////////////////////// Dithering Kernel /////////////////////////
+
+Kernel Kernel::BayerIndex(int size) 
+{
+    if (size < 2 || size % 2 != 0) 
+    {
+        throw std::invalid_argument("Kernel size must be a positive even number.");
+    }
+
+    // Base case: 2x2 Bayer matrix
+    if (size == 2)
+    {
+        return Kernel(
+            {0.0f, 2.0f,
+             3.0f, 1.0f},
+            size
+        );
+    }
+
+    // Recursive case: split into 4 quadrants
+    int halfSize = size / 2;
+    Kernel smallerMatrix = BayerIndex(halfSize);
+    std::vector<float> result(size * size);
+
+    for (int y = 0; y < halfSize; y++)
+    {
+        for (int x = 0; x < halfSize; x++)
+        {
+            float value = smallerMatrix[y * halfSize + x];
+
+            result[y * size + x] = 4 * value;                             // Top-left
+            result[y * size + x + halfSize] = 4 * value + 2;              // Top-right
+            result[(y + halfSize) * size + x] = 4 * value + 3;            // Bottom-left
+            result[(y + halfSize) * size + x + halfSize] = 4 * value + 1; // Bottom-right
+        }
+    }
+
+    return Kernel(result, size);
+}
+
+Kernel Kernel::BayerThreshold(int size) 
+{
+    Kernel bayerIndex = BayerIndex(size);
+    std::vector<float> result(size * size);
+
+    for (int i = 0; i < size * size; i++) 
+    {
+        result[i] = (bayerIndex[i] + 0.5f) / (size * size);
+    }
+
+    return Kernel(result, size);
+}
+
+Kernel Kernel::FloydSteinberg() 
+{
+    return Kernel(
+        {0.0f        , 0.0f        , 0.0f,
+         0.0f        , 0.0f        , 7.0f / 16.0f,
+         3.0f / 16.0f, 5.0f / 16.0f, 1.0f / 16.0f},
+        3
+    );
+}

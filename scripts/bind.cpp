@@ -51,7 +51,7 @@ PYBIND11_MODULE(image_processing, m)
         .def_static("channel_separate", &Image::ChannelSeparate, py::arg("img"), py::arg("channel"))
         .def_static("gray_scale", &Image::GrayScale, py::arg("img"))
         .def_static("water_mark", &Image::WaterMark, py::arg("img"), py::arg("watermark"), py::arg("offset_x"), py::arg("offset_y"), py::arg("filter_white_threshold"), py::arg("blend_rate"))
-        .def_static("negative", &Image::Negative, py::arg("img"), py::arg("channel"))
+        .def_static("negative", &Image::Negative, py::arg("img"), py::arg("channel") = 0)
 
         // Enhancement functions
         .def_static("linear_scale", &Image::LinearScale, py::arg("img"), py::arg("channel"), py::arg("min"), py::arg("max"))
@@ -71,6 +71,15 @@ PYBIND11_MODULE(image_processing, m)
         .def_static("shrink", &Image::Shrink, py::arg("img"), py::arg("channel"), py::arg("iterations") = 8)
         .def_static("thin", &Image::Thin, py::arg("img"), py::arg("channel"), py::arg("iterations") = 8)
         .def_static("skeletonize", &Image::Skeletonize, py::arg("img"), py::arg("channel"), py::arg("iterations") = 8)
+        .def_static("erode", &Image::Erode, py::arg("img"), py::arg("channel"), py::arg("iterations") = 8)
+        .def_static("dilate", &Image::Dilate, py::arg("img"), py::arg("channel"), py::arg("iterations") = 8)
         .def_static("open", &Image::Open, py::arg("img"), py::arg("channel"))
-        .def_static("close", &Image::Close, py::arg("img"), py::arg("channel"));
+        .def_static("close", &Image::Close, py::arg("img"), py::arg("channel"))
+
+        // Digital Halftoning functions
+        .def_static("fixed_dither", &Image::FixedDither, py::arg("img"), py::arg("channel"), py::arg("threshold"))
+        .def_static("random_dither", &Image::RandomDither, py::arg("img"), py::arg("channel"), py::arg("local_hash") = false, py::arg("seed") = 0)
+        .def_static("bayer_dither", &Image::BayerDither, py::arg("img"), py::arg("channel"), py::arg("window_size"), py::arg("num_of_levels") = 2)
+        .def_static("cluster_dither", &Image::ClusterDither, py::arg("img"), py::arg("channel"), py::arg("cluster_size"))
+        .def_static("fsed_dither", &Image::FSEDDither, py::arg("img"), py::arg("channel"), py::arg("method"), py::arg("param"), py::arg("serpentine") = false);
 }
