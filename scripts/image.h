@@ -61,6 +61,11 @@ public:
     static Image ClusterDither(const Image& img, int channel, int clusterSize);
     static Image FSEDDither(const Image& img, int channel, const std::string& method, int param, bool serpentine = false);
 
+    // Geometric Modification functions
+    static Image Rotate(const Image& img, float angle);
+    static Image Scale(const Image& img, float scaleX, float scaleY, const std::string& interpolateMethod = "nearest");
+    static Image Translate(const Image& img, int offsetX, int offsetY);
+
 public:
     std::vector<unsigned char> m_data;
     int m_width;

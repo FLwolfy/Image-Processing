@@ -174,3 +174,29 @@ std::vector<unsigned char> FloydSteinbergEDD(
     int param, // fixed, then input "threshold"; bayer, then input "size"
     bool serpentine
 );
+
+///////////////////////// Geometric Modification functions /////////////////////////
+
+std::vector<unsigned char> Rotating(
+    const unsigned char* data, 
+    int width, int height, 
+    int bytesPerPixel,
+    float angle // anti-clockwise
+);
+
+std::vector<unsigned char> Scaling(
+    const unsigned char* data, 
+    int width, int height, 
+    int bytesPerPixel,
+    float scaleX, 
+    float scaleY,
+    int interpolation // 0: nearest, 1: bilinear
+);
+
+std::vector<unsigned char> Translating(
+    const unsigned char* data, 
+    int width, int height, 
+    int bytesPerPixel,
+    int offsetX, 
+    int offsetY
+);

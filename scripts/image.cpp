@@ -1,5 +1,7 @@
 #include <image.h>
 
+#include <stdexcept>
+
 ///////////////////////////////////////////////////////////////
 ///////////////////////// PUBLIC APIS /////////////////////////
 ///////////////////////////////////////////////////////////////
@@ -258,6 +260,56 @@ Image Image::FSEDDither(const Image& img, int channel, const std::string& method
 
     return errorDiffusedImage;
 }
+
+///////////// Geometric Modification functions /////////////
+
+Image Image::Rotate(const Image& img, float angle)
+{
+    std::vector<unsigned char> rotatedData = Rotating(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, angle);
+
+    float radian = angle * 3.14159265358979323846f / 180.0f;
+    float cosAngle = std::cos(radian);
+    float sinAngle = std::sin(radian);
+    
+    Image rotatedImage = Image(static_cast<int>(std::abs(img.m_width * cosAngle) + std::abs(img.m_height * sinAngle)), static_cast<int>(std::abs(img.m_width * sinAngle) + std::abs(img.m_height * cosAngle)), img.m_bytesPerPixel);
+    rotatedImage.m_data = rotatedData;
+
+    return rotatedImage;
+}
+
+Image Image::Scale(const Image& img, float scaleX, float scaleY, const std::string& interpolateMethod)
+{
+    std::vector<unsigned char> scaledData;
+
+    if (interpolateMethod == "nearest")
+    {
+        scaledData = Scaling(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, scaleX, scaleY, 0);
+    }
+    else if (interpolateMethod == "bilinear")
+    {
+        scaledData = Scaling(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, scaleX, scaleY, 1);
+    }
+    else
+    {
+        throw std::invalid_argument("Invalid interpolation method");
+    }
+    
+    Image scaledImage = Image(static_cast<int>(img.m_width * scaleX), static_cast<int>(img.m_height * scaleY), img.m_bytesPerPixel);
+    scaledImage.m_data = scaledData;
+
+    return scaledImage;
+}
+
+Image Image::Translate(const Image& img, int offsetX, int offsetY)
+{
+    std::vector<unsigned char> translatedData = Translating(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, offsetX, offsetY);
+
+    Image translatedImage = Image(img.m_width + std::abs(offsetX), img.m_height + std::abs(offsetY), img.m_bytesPerPixel);
+    translatedImage.m_data = translatedData;
+
+    return translatedImage;
+}
+
 
 //////////////////////////////////////////////////////////////////
 ///////////////////////// Histogram APIS /////////////////////////

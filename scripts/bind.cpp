@@ -81,5 +81,11 @@ PYBIND11_MODULE(image_processing, m)
         .def_static("random_dither", &Image::RandomDither, py::arg("img"), py::arg("channel"), py::arg("local_hash") = false, py::arg("seed") = 0)
         .def_static("bayer_dither", &Image::BayerDither, py::arg("img"), py::arg("channel"), py::arg("window_size"), py::arg("num_of_levels") = 2)
         .def_static("cluster_dither", &Image::ClusterDither, py::arg("img"), py::arg("channel"), py::arg("cluster_size"))
-        .def_static("fsed_dither", &Image::FSEDDither, py::arg("img"), py::arg("channel"), py::arg("method"), py::arg("param"), py::arg("serpentine") = false);
+        .def_static("fsed_dither", &Image::FSEDDither, py::arg("img"), py::arg("channel"), py::arg("method"), py::arg("param"), py::arg("serpentine") = false)
+
+        // Geometric Modification functions
+        .def_static("rotate", &Image::Rotate, py::arg("img"), py::arg("angle"))
+        .def_static("scale", &Image::Scale, py::arg("img"), py::arg("scale_x"), py::arg("scale_y"), py::arg("interpolate_method") = "nearest")
+        .def_static("translate", &Image::Translate, py::arg("img"), py::arg("offset_x"), py::arg("offset_y"))
+    ;
 }

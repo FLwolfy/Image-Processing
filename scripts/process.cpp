@@ -1053,3 +1053,154 @@ std::vector<unsigned char> FloydSteinbergEDD(
 
     return errorDiffusedData;
 }
+
+///////////////////////// Geometric Modification functions /////////////////////////
+
+std::vector<unsigned char> Rotating(
+    const unsigned char* data, 
+    int width, int height, 
+    int bytesPerPixel,
+    float angle
+) {
+    float radian = angle * 3.14159265358979323846f / 180.0f;
+    float cosAngle = std::cos(radian);
+    float sinAngle = std::sin(radian);
+
+    // Calculate new dimensions
+    int newWidth = static_cast<int>(std::abs(width * cosAngle) + std::abs(height * sinAngle));
+    int newHeight = static_cast<int>(std::abs(width * sinAngle) + std::abs(height * cosAngle));
+
+    std::vector<unsigned char> rotatedData(newWidth * newHeight * bytesPerPixel);
+
+    // Center as Pivot
+    int centerX = width / 2;
+    int centerY = height / 2;
+    int newCenterX = newWidth / 2;
+    int newCenterY = newHeight / 2;
+
+    for (int y = 0; y < newHeight; y++) 
+    {
+        for (int x = 0; x < newWidth; x++) 
+        {
+            int oldX = static_cast<int>((x - newCenterX) * cosAngle + (y - newCenterY) * sinAngle + centerX);
+            int oldY = static_cast<int>(-(x - newCenterX) * sinAngle + (y - newCenterY) * cosAngle + centerY);
+
+            int index = (y * newWidth + x) * bytesPerPixel;
+
+            if (oldX >= 0 && oldX < width && oldY >= 0 && oldY < height) 
+            {
+                int oldIndex = (oldY * width + oldX) * bytesPerPixel;
+                for (int i = 0; i < bytesPerPixel; i++) 
+                {
+                    rotatedData[index + i] = data[oldIndex + i];
+                }
+            } 
+            else 
+            {
+                for (int i = 0; i < bytesPerPixel; i++) 
+                {
+                    rotatedData[index + i] = 0; // Fill with black if out of bounds
+                }
+            }
+        }
+    }
+
+    return rotatedData;
+}
+
+std::vector<unsigned char> Scaling(
+    const unsigned char* data, 
+    int width, int height, 
+    int bytesPerPixel,
+    float scaleX, 
+    float scaleY,
+    int interpolation
+) {
+    int newWidth = static_cast<int>(width * scaleX);
+    int newHeight = static_cast<int>(height * scaleY);
+
+    std::vector<unsigned char> scaledData(newWidth * newHeight * bytesPerPixel);
+
+    for (int y = 0; y < newHeight; y++) 
+    {
+        for (int x = 0; x < newWidth; x++) 
+        {
+            float srcX = x / scaleX;
+            float srcY = y / scaleY;
+
+            int x1 = static_cast<int>(srcX);
+            int y1 = static_cast<int>(srcY);
+            int x2 = std::min(x1 + 1, width - 1);
+            int y2 = std::min(y1 + 1, height - 1);
+
+            float dx = srcX - x1;
+            float dy = srcY - y1;
+
+            int index = (y * newWidth + x) * bytesPerPixel;
+            for (int i = 0; i < bytesPerPixel; i++) 
+            {
+                if (interpolation == 0) 
+                {
+                    // Nearest Neighbor
+                    scaledData[index + i] = data[(y1 * width + x1) * bytesPerPixel + i];
+                } 
+                else if (interpolation == 1) 
+                {
+                    // Bilinear
+                    scaledData[index + i] = static_cast<unsigned char>(
+                        (1 - dx) * (1 - dy) * data[(y1 * width + x1) * bytesPerPixel + i] +
+                        dx * (1 - dy) * data[(y1 * width + x2) * bytesPerPixel + i] +
+                        (1 - dx) * dy * data[(y2 * width + x1) * bytesPerPixel + i] +
+                        dx * dy * data[(y2 * width + x2) * bytesPerPixel + i]
+                    );
+                }
+            }
+        }
+    }
+
+    return scaledData;
+}
+
+std::vector<unsigned char> Translating(
+    const unsigned char* data, 
+    int width, int height, 
+    int bytesPerPixel,
+    int offsetX, 
+    int offsetY
+) {
+    int newWidth = width + std::abs(offsetX);
+    int newHeight = height + std::abs(offsetY);
+    std::vector<unsigned char> translatedData(newWidth * newHeight * bytesPerPixel);
+
+    for (int y = 0; y < newHeight; y++) 
+    {
+        for (int x = 0; x < newWidth; x++) 
+        {
+            int newX = x - (offsetX > 0 ? offsetX : 0);
+            int newY = y - (offsetY > 0 ? offsetY : 0);
+
+            if (offsetX < 0) newX = x;
+            if (offsetY < 0) newY = y;
+
+            int index = (y * newWidth + x) * bytesPerPixel;
+
+            if (newX >= 0 && newX < width && newY >= 0 && newY < height) 
+            {
+                int newIndex = (newY * width + newX) * bytesPerPixel;
+                for (int i = 0; i < bytesPerPixel; i++) 
+                {
+                    translatedData[index + i] = data[newIndex + i];
+                }
+            } 
+            else 
+            {
+                for (int i = 0; i < bytesPerPixel; i++) 
+                {
+                    translatedData[index + i] = 0; // Fill with black if out of bounds
+                }
+            }
+        }
+    }
+
+    return translatedData;
+}
