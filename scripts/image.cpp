@@ -310,6 +310,38 @@ Image Image::Translate(const Image& img, int offsetX, int offsetY)
     return translatedImage;
 }
 
+Image Image::CircleWarp(const Image& img, bool inverse)
+{
+    std::vector<unsigned char> warpedData;
+
+    if (inverse) 
+    {
+        warpedData = CircleToSquareWarp(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel);
+    }
+    else
+    {
+        warpedData = SquareToCircleWarp(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel);
+    }
+    
+    Image warpedImage = Image(img.m_width, img.m_height, img.m_bytesPerPixel);
+    warpedImage.m_data = warpedData;
+
+    return warpedImage;
+}
+
+std::vector<int> Image::TextureCluster(const std::vector<Image>& imgs, int channel, int numOfClusters)
+{
+    std::vector<std::vector<float>> featureMatrix;
+
+    for (const Image& img : imgs)
+    {
+        std::vector<float> feature = LawsFilterFeatureExtract(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, channel);
+        featureMatrix.push_back(feature);
+    }
+
+    std::vector<int> clusterResult = KMEANSFeatureClustering(featureMatrix, numOfClusters);
+    return clusterResult;
+}
 
 //////////////////////////////////////////////////////////////////
 ///////////////////////// Histogram APIS /////////////////////////

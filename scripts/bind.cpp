@@ -87,5 +87,9 @@ PYBIND11_MODULE(image_processing, m)
         .def_static("rotate", &Image::Rotate, py::arg("img"), py::arg("angle"))
         .def_static("scale", &Image::Scale, py::arg("img"), py::arg("scale_x"), py::arg("scale_y"), py::arg("interpolate_method") = "nearest")
         .def_static("translate", &Image::Translate, py::arg("img"), py::arg("offset_x"), py::arg("offset_y"))
+        .def_static("circle_warp", &Image::CircleWarp, py::arg("img"), py::arg("inverse") = false)
+
+        // Texture Analysis functions
+        .def_static("texture_cluster", &Image::TextureCluster, py::arg("imgs"), py::arg("channel"), py::arg("num_of_clusters"))
     ;
 }

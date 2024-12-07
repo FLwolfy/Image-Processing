@@ -181,7 +181,7 @@ std::vector<unsigned char> Rotating(
     const unsigned char* data, 
     int width, int height, 
     int bytesPerPixel,
-    float angle // anti-clockwise
+    float angle // clockwise
 );
 
 std::vector<unsigned char> Scaling(
@@ -199,4 +199,30 @@ std::vector<unsigned char> Translating(
     int bytesPerPixel,
     int offsetX, 
     int offsetY
+);
+
+std::vector<unsigned char> SquareToCircleWarp(
+    const unsigned char* data, 
+    int width, int height, 
+    int bytesPerPixel
+);
+
+std::vector<unsigned char> CircleToSquareWarp(
+    const unsigned char* data, 
+    int width, int height, 
+    int bytesPerPixel
+);
+
+///////////////////////// Texture Analysis functions /////////////////////////////
+
+std::vector<float> LawsFilterFeatureExtract(
+    const unsigned char* data, 
+    int width, int height, 
+    int bytesPerPixel,
+    int channel
+);
+
+std::vector<int> KMEANSFeatureClustering(
+    const std::vector<std::vector<float>>& featureMatrix,
+    int numOfClusters
 );

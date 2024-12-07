@@ -1204,3 +1204,153 @@ std::vector<unsigned char> Translating(
 
     return translatedData;
 }
+
+std::vector<unsigned char> SquareToCircleWarp(
+    const unsigned char* data, 
+    int width, int height, 
+    int bytesPerPixel
+) {
+    std::vector<unsigned char> warpedData(width * height * bytesPerPixel, 0);
+
+    float centerX = width / 2.0f;
+    float centerY = height / 2.0f;
+    float maxRadius = std::min(centerX, centerY);
+
+    for (int v = 0; v < height; v++) 
+    {
+        for (int u = 0; u < width; u++) 
+        {
+            int index = (v * width + u) * bytesPerPixel;
+            float dx = u - centerX;
+            float dy = v - centerY;
+            float uv2center = std::sqrt(dx * dx + dy * dy);
+
+            float Dy;
+            if (dx == 0 && dy == 0) 
+            {
+                Dy = maxRadius;
+            } 
+            else if (dx == 0 || dy == 0) 
+            {
+                Dy = 0;
+            } 
+            else
+            {
+                Dy = std::min(std::abs(dy / dx * maxRadius), std::abs(dx / dy * maxRadius));
+            }
+            float maxDistance = std::sqrt(Dy * Dy + maxRadius * maxRadius);
+
+            if (uv2center <= maxRadius) 
+            {
+                float srcX = dx * maxDistance / maxRadius + centerX;
+                float srcY = dy * maxDistance / maxRadius + centerY;
+
+                int srcIndexX = static_cast<int>(srcX);
+                int srcIndexY = static_cast<int>(srcY);
+
+                if (srcIndexX >= 0 && srcIndexX < width && srcIndexY >= 0 && srcIndexY < height) 
+                {
+                    int srcIndex = (srcIndexY * width + srcIndexX) * bytesPerPixel;
+                    for (int i = 0; i < bytesPerPixel; i++) 
+                    {
+                        warpedData[index + i] = data[srcIndex + i];
+                    }
+                }
+            }
+        }
+    }
+
+    return warpedData;
+}
+
+std::vector<unsigned char> CircleToSquareWarp(
+    const unsigned char* data, 
+    int width, int height, 
+    int bytesPerPixel
+) {
+    std::vector<unsigned char> warpedData(width * height * bytesPerPixel, 0);
+
+    float centerX = width / 2.0f;
+    float centerY = height / 2.0f;
+    float maxRadius = std::min(centerX, centerY);
+
+    for (int y = 0; y < height; y++) 
+    {
+        for (int x = 0; x < width; x++) 
+        {
+            int index = (y * width + x) * bytesPerPixel;
+            float dx = x - centerX;
+            float dy = y - centerY;
+
+            float Dy;
+            if (dx == 0 && dy == 0) 
+            {
+                Dy = maxRadius;
+            } 
+            else if (dx == 0 || dy == 0) 
+            {
+                Dy = 0;
+            } 
+            else
+            {
+                Dy = std::min(std::abs(dy / dx * maxRadius), std::abs(dx / dy * maxRadius));
+            }
+
+            float maxDistance = std::sqrt(Dy * Dy + maxRadius * maxRadius);
+
+            float srcX = dx * maxRadius / maxDistance + centerX;
+            float srcY = dy * maxRadius / maxDistance + centerY;
+            int srcIndexX = static_cast<int>(srcX);
+            int srcIndexY = static_cast<int>(srcY);
+
+            if (srcIndexX >= 0 && srcIndexX < width && srcIndexY >= 0 && srcIndexY < height) 
+            {
+                int srcIndex = (srcIndexY * width + srcIndexX) * bytesPerPixel;
+                for (int i = 0; i < bytesPerPixel; i++) 
+                {
+                    warpedData[index + i] = data[srcIndex + i];
+                }
+            }
+        }
+    }
+
+    return warpedData;
+}
+
+///////////////////////// Texture Analysis functions /////////////////////////////
+
+std::vector<float> LawsFilterFeatureExtract(
+    const unsigned char* data, 
+    int width, int height, 
+    int bytesPerPixel,
+    int channel
+) {
+    channel = channel < 0 ? 0 : (channel >= bytesPerPixel ? bytesPerPixel - 1 : channel);
+
+    std::vector<Kernel> lawsFilters = Kernel::LawsFilters();
+    std::vector<float> featureVector(lawsFilters.size(), 0);
+
+    for (Kernel filter : lawsFilters) 
+    {
+        // Convolve the data with the filter
+        std::vector<float> convolvedData = ConvolvePrecise(data, width, height, bytesPerPixel, channel, filter);
+        
+        // Calculate Energy
+        float energy = 0;
+        for (float value : convolvedData) 
+        {
+            energy += value * value;
+        }
+
+        featureVector.push_back(energy);
+    }
+
+    return featureVector;
+}
+
+std::vector<int> KMEANSFeatureClustering(
+    const std::vector<std::vector<float>>& featureMatrix,
+    int numOfClusters
+) {
+    return kMeansClustering(featureMatrix, numOfClusters);
+}

@@ -943,3 +943,36 @@ Kernel Kernel::FloydSteinberg()
         3
     );
 }
+
+///////////////////////// Texture analysis Kernel /////////////////////////
+
+std::vector<Kernel> Kernel::LawsFilters()
+{
+    std::vector<Kernel> kernels;
+
+    std::vector<float> L3 = {1/6.0f, 2/6.0f, 1/6.0f};
+    std::vector<float> E3 = {-1/2.0f, 0, 1/2.0f};
+    std::vector<float> S3 = {1/2.0f, -2/2.0f, 1/2.0f};
+
+    std::vector<std::vector<float>> filters;
+
+    for (const std::vector<float>& L : {L3, E3, S3})
+    {
+        for (const std::vector<float>& M : {L, L, L})
+        {
+            for (const std::vector<float>& S : {L, L, L})
+            {
+                filters.push_back({L[0] * M[0] * S[0], L[0] * M[1] * S[0], L[0] * M[2] * S[0],
+                                   L[0] * M[0] * S[1], L[0] * M[1] * S[1], L[0] * M[2] * S[1],
+                                   L[0] * M[0] * S[2], L[0] * M[1] * S[2], L[0] * M[2] * S[2]});
+            }
+        }
+    }
+
+    for (const std::vector<float>& filter : filters)
+    {
+        kernels.push_back(Kernel(filter, 3));
+    }
+
+    return kernels;
+}

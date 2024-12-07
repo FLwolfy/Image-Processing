@@ -33,6 +33,9 @@ public:
     static Kernel BayerThreshold(int size);
     static Kernel FloydSteinberg();
 
+    // Texture analysis Kernel
+    static std::vector<Kernel> LawsFilters();
+
 public:
     std::vector<float> m_values;
     int m_size;

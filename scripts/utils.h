@@ -58,3 +58,8 @@ std::vector<bool> MaskBool(
     int width, int height,
     const std::vector<Kernel>& kernels
 );
+
+std::vector<int> kMeansClustering(
+    const std::vector<std::vector<float>>& data,
+    int numOfClusters
+);

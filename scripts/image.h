@@ -65,6 +65,10 @@ public:
     static Image Rotate(const Image& img, float angle);
     static Image Scale(const Image& img, float scaleX, float scaleY, const std::string& interpolateMethod = "nearest");
     static Image Translate(const Image& img, int offsetX, int offsetY);
+    static Image CircleWarp(const Image& img, bool inverse = false);
+
+    // Texture Analysis functions
+    static std::vector<int> TextureCluster(const std::vector<Image>& imgs, int channel, int numOfClusters);
 
 public:
     std::vector<unsigned char> m_data;

@@ -1,5 +1,7 @@
 #include <utils.h>
 #include <functional>
+#include <iostream>
+#include <random>
 
 ///////////////////////// Non-Destructive Functions /////////////////////////
 
@@ -360,4 +362,87 @@ std::vector<bool> MaskBool(
     }
 
     return mask;
+}
+
+std::vector<int> kMeansClustering(
+    const std::vector<std::vector<float>>& data,
+    int numOfClusters
+) {
+    int numOfPoints = data.size();
+    int numOfFeatures = data[0].size();
+
+    // 计算两点之间的欧几里得距离
+    auto euclideanDistance = [](const std::vector<float>& a, const std::vector<float>& b) -> float {
+        float distance = 0.0;
+        for (size_t i = 0; i < a.size(); ++i) {
+            distance += (a[i] - b[i]) * (a[i] - b[i]);
+        }
+        return std::sqrt(distance);
+    };
+
+    // 初始化聚类中心（随机选择数据点作为初始中心）
+    std::vector<std::vector<float>> centroids(numOfClusters, std::vector<float>(numOfFeatures, 0));
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dis(0, numOfPoints - 1);
+    
+    // 随机选择初始中心
+    for (int i = 0; i < numOfClusters; ++i) {
+        centroids[i] = data[dis(gen)];
+    }
+
+    std::vector<int> clusterAssignments(numOfPoints, -1);  // 每个数据点的聚类编号
+    std::vector<int> pointsInCluster(numOfClusters, 0);     // 每个聚类中点的数量
+    std::vector<std::vector<float>> newCentroids(numOfClusters, std::vector<float>(numOfFeatures, 0));
+
+    bool converged = false;
+    while (!converged) {
+        converged = true;
+        
+        // Step 1: 为每个点分配聚类
+        std::fill(pointsInCluster.begin(), pointsInCluster.end(), 0);
+        for (int i = 0; i < numOfPoints; ++i) {
+            float minDistance = std::numeric_limits<float>::max();
+            int bestCluster = -1;
+            for (int j = 0; j < numOfClusters; ++j) {
+                float dist = euclideanDistance(data[i], centroids[j]);
+                if (dist < minDistance) {
+                    minDistance = dist;
+                    bestCluster = j;
+                }
+            }
+            
+            // Step 2: 更新聚类分配
+            if (clusterAssignments[i] != bestCluster) {
+                converged = false;
+                clusterAssignments[i] = bestCluster;
+            }
+            pointsInCluster[bestCluster]++;
+        }
+
+        // Step 3: 重新计算每个聚类的中心
+        std::fill(newCentroids.begin(), newCentroids.end(), std::vector<float>(numOfFeatures, 0));
+        for (int i = 0; i < numOfPoints; ++i) {
+            int clusterId = clusterAssignments[i];
+            for (int j = 0; j < numOfFeatures; ++j) {
+                newCentroids[clusterId][j] += data[i][j];
+            }
+        }
+
+        // 求每个聚类中心的均值
+        for (int i = 0; i < numOfClusters; ++i) {
+            if (pointsInCluster[i] > 0) {
+                for (int j = 0; j < numOfFeatures; ++j) {
+                    newCentroids[i][j] /= pointsInCluster[i];
+                }
+            }
+        }
+
+        // 检查是否收敛
+        if (!converged) {
+            centroids = newCentroids;
+        }
+    }
+
+    return clusterAssignments;
 }
