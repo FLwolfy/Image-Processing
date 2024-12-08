@@ -95,6 +95,28 @@ Image(width: int, height: int, bytesPerPixel: int)
   - `cluster_dither(img: Image, channel: int, cluster_size: int)`: Apply clustered-dot dithering to a specific channel.
   - `fsed_dither(img: Image, channel: int, method: str, param: float, serpentine: bool = False)`: Apply Floyd-Steinberg error diffusion dithering to a specific channel.
 
+- **[Geometric Modification Methods]**
+  - `rotate(img: Image, angle: float, interpolate_method: str = "nearest")`: Rotate the image by a specified angle.
+  - `scale(img: Image, scale_x: float, scale_y: float, interpolate_method: str = "nearest")`: Scale the image by specified factors along the x and y axes.
+  - `translate(img: Image, offset_x: int, offset_y: int, interpolate_method: str = "nearest")`: Translate the image by specified offsets along the x and y axes.
+  - `shear(img: Image, shear_x: float, shear_y: float, interpolate_method: str = "nearest")`: Shear the image by specified factors along the x and y axes.
+  - `circle_warp(img: Image, inverse: bool = false)`: Apply a circular warp to the image.
+
+- **[Texture Analysis Methods]**
+  - `texture_cluster(imgs: list[Image], filter_size: int, num_of_clusters: int, num_of_iterations: int)`: Perform texture clustering on a list of images.
+  - `texture_segment(img: Image, channel: int, filter_size: int, patch_size: int, num_of_clusters: int, num_of_iterations: int)`: Perform texture segmentation on an image.
+
+- **[Feature Extraction Methods]**
+  - `segment(img: Image, min_area: int = 9)`: Segment the image based on a minimum area threshold.
+  - `get_aspect_ratio()`: Get the aspect ratio of the image.
+  - `get_area_rate()`: Get the area rate of the image.
+  - `get_perimeter_rate()`: Get the perimeter rate of the image.
+  - `get_euler_number(connectivity4: bool = false)`: Get the Euler number of the image.
+  - `get_spatial_moment(p: int, q: int)`: Get the spatial moment of the image.
+  - `get_centroid()`: Get the centroid of the image.
+  - `get_symmetry()`: Get the symmetry of the image.
+  - `get_circularity()`: Get the circularity of the image.
+
 ### Plotting Functions (Python)
 
 The `plot.py` module provides functions for visualizing images and histograms.
