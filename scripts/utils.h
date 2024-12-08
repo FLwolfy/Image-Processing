@@ -12,7 +12,13 @@ unsigned char Maximin(const unsigned char* array, int length);
 
 unsigned char Minimax(const unsigned char* array, int length);
 
+unsigned char Mean(const unsigned char* array, int length);
+
 unsigned char Median(const unsigned char* array, int length, bool pseudo);
+
+float Variance(const unsigned char* array, int length);
+
+float MSE(const unsigned char* data1, const unsigned char* data2, int length);
 
 ///////////////////////// Array Functions /////////////////////////
 
@@ -59,7 +65,18 @@ std::vector<bool> MaskBool(
     const std::vector<Kernel>& kernels
 );
 
-std::vector<int> kMeansClustering(
-    const std::vector<std::vector<float>>& data,
-    int numOfClusters
+int MaskCount(
+    const unsigned char* data,
+    int width, int height,
+    int bytesPerPixel,
+    int channel,
+    const Kernel& kernel
+);
+
+///////////////////////// K-Means Clustering /////////////////////////
+
+std::vector<int> KMEANSClustering(
+    const std::vector<std::vector<float>>& featureMatrix,
+    int K,
+    int max_iterations
 );

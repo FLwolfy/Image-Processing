@@ -3,6 +3,7 @@
 #include <utils.h>
 
 #include <cmath>
+#include <cfloat>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdexcept>
@@ -11,6 +12,8 @@
 #include <iostream>
 #include <string>
 #include <random>
+#include <queue>
+#include <numeric>
 
 ///////////////////////// Regular processing functions /////////////////////////
 
@@ -1060,7 +1063,8 @@ std::vector<unsigned char> Rotating(
     const unsigned char* data, 
     int width, int height, 
     int bytesPerPixel,
-    float angle
+    float angle,
+    int interpolation
 ) {
     float radian = angle * 3.14159265358979323846f / 180.0f;
     float cosAngle = std::cos(radian);
@@ -1082,17 +1086,56 @@ std::vector<unsigned char> Rotating(
     {
         for (int x = 0; x < newWidth; x++) 
         {
-            int oldX = static_cast<int>((x - newCenterX) * cosAngle + (y - newCenterY) * sinAngle + centerX);
-            int oldY = static_cast<int>(-(x - newCenterX) * sinAngle + (y - newCenterY) * cosAngle + centerY);
+            float oldX = (x - newCenterX) * cosAngle + (y - newCenterY) * sinAngle + centerX;
+            float oldY = -(x - newCenterX) * sinAngle + (y - newCenterY) * cosAngle + centerY;
 
             int index = (y * newWidth + x) * bytesPerPixel;
 
             if (oldX >= 0 && oldX < width && oldY >= 0 && oldY < height) 
             {
-                int oldIndex = (oldY * width + oldX) * bytesPerPixel;
-                for (int i = 0; i < bytesPerPixel; i++) 
+                int x1 = static_cast<int>(oldX);
+                int y1 = static_cast<int>(oldY);
+                int x2 = std::min(x1 + 1, width - 1);
+                int y2 = std::min(y1 + 1, height - 1);
+
+                float dx = oldX - x1;
+                float dy = oldY - y1;
+
+                if (dx == 0 && dy == 0) 
                 {
-                    rotatedData[index + i] = data[oldIndex + i];
+                    int oldIndex = (y1 * width + x1) * bytesPerPixel;
+                    for (int i = 0; i < bytesPerPixel; i++) 
+                    {
+                        rotatedData[index + i] = data[oldIndex + i];
+                    }
+                } 
+                else 
+                {
+                    for (int i = 0; i < bytesPerPixel; i++) 
+                    {
+                        // Interpolation Methods
+                        if (interpolation == 0) 
+                        {
+                            // Nearest Neighbor
+                            int oldIndex = (y1 * width + x1) * bytesPerPixel;
+                            rotatedData[index + i] = data[oldIndex + i];
+                        } 
+                        else if (interpolation == 1) 
+                        {
+                            // Bilinear
+                            int oldIndex1 = (y1 * width + x1) * bytesPerPixel;
+                            int oldIndex2 = (y1 * width + x2) * bytesPerPixel;
+                            int oldIndex3 = (y2 * width + x1) * bytesPerPixel;
+                            int oldIndex4 = (y2 * width + x2) * bytesPerPixel;
+
+                            rotatedData[index + i] = static_cast<unsigned char>(
+                                (1 - dx) * (1 - dy) * data[oldIndex1 + i] +
+                                dx * (1 - dy) * data[oldIndex2 + i] +
+                                (1 - dx) * dy * data[oldIndex3 + i] +
+                                dx * dy * data[oldIndex4 + i]
+                            );
+                        }
+                    }
                 }
             } 
             else 
@@ -1139,7 +1182,12 @@ std::vector<unsigned char> Scaling(
             int index = (y * newWidth + x) * bytesPerPixel;
             for (int i = 0; i < bytesPerPixel; i++) 
             {
-                if (interpolation == 0) 
+                if (dx == 0 && dy == 0) 
+                {
+                    // Exact match
+                    scaledData[index + i] = data[(y1 * width + x1) * bytesPerPixel + i];
+                } 
+                else if (interpolation == 0) 
                 {
                     // Nearest Neighbor
                     scaledData[index + i] = data[(y1 * width + x1) * bytesPerPixel + i];
@@ -1165,8 +1213,9 @@ std::vector<unsigned char> Translating(
     const unsigned char* data, 
     int width, int height, 
     int bytesPerPixel,
-    int offsetX, 
-    int offsetY
+    float offsetX, 
+    float offsetY,
+    int interpolation
 ) {
     int newWidth = width + std::abs(offsetX);
     int newHeight = height + std::abs(offsetY);
@@ -1176,8 +1225,8 @@ std::vector<unsigned char> Translating(
     {
         for (int x = 0; x < newWidth; x++) 
         {
-            int newX = x - (offsetX > 0 ? offsetX : 0);
-            int newY = y - (offsetY > 0 ? offsetY : 0);
+            float newX = x - (offsetX > 0 ? offsetX : 0);
+            float newY = y - (offsetY > 0 ? offsetY : 0);
 
             if (offsetX < 0) newX = x;
             if (offsetY < 0) newY = y;
@@ -1186,10 +1235,48 @@ std::vector<unsigned char> Translating(
 
             if (newX >= 0 && newX < width && newY >= 0 && newY < height) 
             {
-                int newIndex = (newY * width + newX) * bytesPerPixel;
-                for (int i = 0; i < bytesPerPixel; i++) 
+                int x1 = static_cast<int>(newX);
+                int y1 = static_cast<int>(newY);
+                int x2 = std::min(x1 + 1, width - 1);
+                int y2 = std::min(y1 + 1, height - 1);
+
+                float dx = newX - x1;
+                float dy = newY - y1;
+
+                if (dx == 0 && dy == 0) 
                 {
-                    translatedData[index + i] = data[newIndex + i];
+                    int newIndex = (y1 * width + x1) * bytesPerPixel;
+                    for (int i = 0; i < bytesPerPixel; i++) 
+                    {
+                        translatedData[index + i] = data[newIndex + i];
+                    }
+                } 
+                else 
+                {
+                    for (int i = 0; i < bytesPerPixel; i++) 
+                    {
+                        if (interpolation == 0) 
+                        {
+                            // Nearest Neighbor
+                            int newIndex = (y1 * width + x1) * bytesPerPixel;
+                            translatedData[index + i] = data[newIndex + i];
+                        } 
+                        else if (interpolation == 1) 
+                        {
+                            // Bilinear interpolation
+                            int newIndex1 = (y1 * width + x1) * bytesPerPixel;
+                            int newIndex2 = (y1 * width + x2) * bytesPerPixel;
+                            int newIndex3 = (y2 * width + x1) * bytesPerPixel;
+                            int newIndex4 = (y2 * width + x2) * bytesPerPixel;
+
+                            translatedData[index + i] = static_cast<unsigned char>(
+                                (1 - dx) * (1 - dy) * data[newIndex1 + i] +
+                                dx * (1 - dy) * data[newIndex2 + i] +
+                                (1 - dx) * dy * data[newIndex3 + i] +
+                                dx * dy * data[newIndex4 + i]
+                            );
+                        }
+                    }
                 }
             } 
             else 
@@ -1203,6 +1290,90 @@ std::vector<unsigned char> Translating(
     }
 
     return translatedData;
+}
+
+std::vector<unsigned char> Shearing(
+    const unsigned char* data, 
+    int width, int height, 
+    int bytesPerPixel,
+    float shearX,
+    float shearY,
+    int interpolation
+) {
+    int offsetX = static_cast<int>(shearX * height);
+    int offsetY = static_cast<int>(shearY * width);
+    int newWidth = width + std::abs(offsetX);
+    int newHeight = height + std::abs(offsetY);
+    std::vector<unsigned char> shearedData(newWidth * newHeight * bytesPerPixel, 0);
+
+    for (int y = 0; y < newHeight; y++) 
+    {
+        for (int x = 0; x < newWidth; x++) 
+        {
+            float oldX = x + shearX * y;
+            if (shearX > 0) oldX -= offsetX;
+            float oldY = y + shearY * x;
+            if (shearY > 0) oldY -= offsetY;
+
+            int index = (y * newWidth + x) * bytesPerPixel;
+
+            if (oldX >= 0 && oldX < width && oldY >= 0 && oldY < height) 
+            {
+                int x1 = static_cast<int>(oldX);
+                int y1 = static_cast<int>(oldY);
+                int x2 = std::min(x1 + 1, width - 1);
+                int y2 = std::min(y1 + 1, height - 1);
+
+                float dx = oldX - x1;
+                float dy = oldY - y1;
+
+                if (dx == 0 && dy == 0) 
+                {
+                    int oldIndex = (y1 * width + x1) * bytesPerPixel;
+                    for (int i = 0; i < bytesPerPixel; i++) 
+                    {
+                        shearedData[index + i] = data[oldIndex + i];
+                    }
+                } 
+                else 
+                {
+                    for (int i = 0; i < bytesPerPixel; i++) 
+                    {
+                        if (interpolation == 0) 
+                        {
+                            // Nearest Neighbor
+                            int oldIndex = (y1 * width + x1) * bytesPerPixel;
+                            shearedData[index + i] = data[oldIndex + i];
+                        } 
+                        else if (interpolation == 1) 
+                        {
+                            // Bilinear
+                            int oldIndex1 = (y1 * width + x1) * bytesPerPixel;
+                            int oldIndex2 = (y1 * width + x2) * bytesPerPixel;
+                            int oldIndex3 = (y2 * width + x1) * bytesPerPixel;
+                            int oldIndex4 = (y2 * width + x2) * bytesPerPixel;
+
+                            shearedData[index + i] = static_cast<unsigned char>(
+                                (1 - dx) * (1 - dy) * data[oldIndex1 + i] +
+                                dx * (1 - dy) * data[oldIndex2 + i] +
+                                (1 - dx) * dy * data[oldIndex3 + i] +
+                                dx * dy * data[oldIndex4 + i]
+                            );
+                        }
+                    }
+                }
+            } 
+            else 
+            {
+                for (int i = 0; i < bytesPerPixel; i++) 
+                {
+                    shearedData[index + i] = 0; // Fill with black if out of bounds
+                }
+            }
+        }
+    }
+
+    return shearedData;
 }
 
 std::vector<unsigned char> SquareToCircleWarp(
@@ -1319,38 +1490,422 @@ std::vector<unsigned char> CircleToSquareWarp(
 
 ///////////////////////// Texture Analysis functions /////////////////////////////
 
-std::vector<float> LawsFilterFeatureExtract(
+std::vector<float> TextureFeatureExtract(
     const unsigned char* data, 
     int width, int height, 
     int bytesPerPixel,
-    int channel
+    int filterSize
 ) {
-    channel = channel < 0 ? 0 : (channel >= bytesPerPixel ? bytesPerPixel - 1 : channel);
+    if (bytesPerPixel != 1) 
+    {
+        throw std::invalid_argument("Texture analysis only works on grayscale images");
+    }
 
-    std::vector<Kernel> lawsFilters = Kernel::LawsFilters();
-    std::vector<float> featureVector(lawsFilters.size(), 0);
+    std::vector<Kernel> lawsFilters = Kernel::LawsFilters(filterSize);
+    std::vector<float> featureVector;
+
+    // Min-Max Features
+    unsigned char min = Min(data, width * height);
+    unsigned char max = Max(data, width * height);
+    featureVector.push_back(min);
+    featureVector.push_back(max);
 
     for (Kernel filter : lawsFilters) 
     {
         // Convolve the data with the filter
-        std::vector<float> convolvedData = ConvolvePrecise(data, width, height, bytesPerPixel, channel, filter);
+        std::vector<float> convolvedData = ConvolvePrecise(data, width, height, bytesPerPixel, 0, filter);
         
-        // Calculate Energy
+        // Variance Feature
         float energy = 0;
+        float sum = 0;
         for (float value : convolvedData) 
         {
+            sum += value;
             energy += value * value;
         }
-
+        sum /= convolvedData.size();
+        energy /= convolvedData.size();
+        energy -= sum * sum;
         featureVector.push_back(energy);
     }
 
     return featureVector;
 }
 
-std::vector<int> KMEANSFeatureClustering(
-    const std::vector<std::vector<float>>& featureMatrix,
-    int numOfClusters
+std::vector<unsigned char> TextureSegmentation(
+    const unsigned char* data, 
+    int width, int height, 
+    int bytesPerPixel,
+    int channel,
+    int filterSize,
+    int patchSize,
+    int numOfClusters,
+    int numOfIterations
 ) {
-    return kMeansClustering(featureMatrix, numOfClusters);
+    std::vector<unsigned char> segmentedData(width * height, 0);
+
+    channel = channel < 0 ? 0 : (channel >= bytesPerPixel ? bytesPerPixel - 1 : channel);
+
+    std::vector<Kernel> lawsFilters = Kernel::LawsFilters(filterSize);
+    std::vector<std::vector<float>> featureVectors;
+    for (int y = 0; y <= height - patchSize; y += patchSize) 
+    {
+        for (int x = 0; x <= width - patchSize; x += patchSize) 
+        {
+            std::vector<unsigned char> patch(patchSize * patchSize);
+            for (int i = 0; i < patchSize; i++) 
+            {
+                for (int j = 0; j < patchSize; j++) 
+                {
+                    int newY = std::min(std::max(y + i, 0), height - 1);
+                    int newX = std::min(std::max(x + j, 0), width - 1);
+                    int index = (newY * width + newX) * bytesPerPixel;
+                    
+                    patch[i * patchSize + j] = data[index + channel];
+                }
+            }
+
+            std::vector<float> featureVector = TextureFeatureExtract(patch.data(), patchSize, patchSize, 1, filterSize);
+            featureVectors.push_back(featureVector);
+        }
+    }
+
+    // K-means clustering
+    std::vector<int> labels = KMEANSClustering(featureVectors, numOfClusters, numOfIterations);
+
+    // Assign the labels to the image
+    for (int y = 0; y < height; y ++) 
+    {
+        for (int x = 0; x < width; x ++) 
+        {
+            int index = y * width + x;
+            int label = labels[(y / patchSize) * (width / patchSize) + (x / patchSize)];
+
+            segmentedData[index] = static_cast<unsigned char>(label * 255 / (numOfClusters - 1));
+        }
+    }
+
+    return segmentedData;
+}
+
+std::vector<std::tuple<const unsigned char*, int, int>> SegmentImage(
+    const unsigned char* data, 
+    int width, int height, 
+    int bytesPerPixel,
+    int minArea
+) {
+    std::vector<std::tuple<const unsigned char*, int, int>> segmentedData;
+
+    if (bytesPerPixel != 1) 
+    {
+        throw std::invalid_argument("Segmentation only works on grayscale images");
+    }
+
+    // Apply the segmentation algorithm
+    std::vector<unsigned char> labels(width * height, 0);
+    int label = 1;
+    for (int y = 0; y < height; y++) 
+    {
+        for (int x = 0; x < width; x++) 
+        {
+            int index = y * width + x;
+            if (data[index] == 255 && labels[y * width + x] == 0) 
+            {
+                std::queue<std::pair<int, int>> q;
+                q.push(std::make_pair(x, y));
+                int area = 0;
+                while (!q.empty()) 
+                {
+                    int curX = q.front().first;
+                    int curY = q.front().second;
+                    q.pop();
+
+                    if (curX < 0 || curX >= width || curY < 0 || curY >= height) { continue; }
+                    if (labels[curY * width + curX] != 0) { continue; }
+                    if (data[(curY * width + curX)] != 255) { continue; }
+
+                    labels[curY * width + curX] = label;
+                    area++;
+                    q.push(std::make_pair(curX - 1, curY));
+                    q.push(std::make_pair(curX + 1, curY));
+                    q.push(std::make_pair(curX, curY - 1));
+                    q.push(std::make_pair(curX, curY + 1));
+                }
+                if (area >= minArea) {
+                    label++;
+                } else {
+                    for (int y = 0; y < height; y++) {
+                        for (int x = 0; x < width; x++) {
+                            if (labels[y * width + x] == label) {
+                                labels[y * width + x] = 0;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Assign the labels to the image
+    for (int i = 1; i < label; i++) 
+    {
+        std::vector<unsigned char> segment(width * height, 0);
+        for (int y = 0; y < height; y++) 
+        {
+            for (int x = 0; x < width; x++) 
+            {
+                int index = y * width + x;
+                if (labels[index] == i) 
+                {
+                    segment[index] = 255;
+                }
+            }
+        }
+
+        // Find bounding box of the segment
+        int minX = width, minY = height, maxX = 0, maxY = 0;
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                if (segment[y * width + x] == 255) {
+                    minX = std::min(minX, x);
+                    minY = std::min(minY, y);
+                    maxX = std::max(maxX, x);
+                    maxY = std::max(maxY, y);
+                }
+            }
+        }
+
+        // Add border size
+        int borderSize = 5;
+        minX = std::max(0, minX - borderSize);
+        minY = std::max(0, minY - borderSize);
+        maxX = std::min(width - 1, maxX + borderSize);
+        maxY = std::min(height - 1, maxY + borderSize);
+
+        int segmentWidth = maxX - minX + 1;
+        int segmentHeight = maxY - minY + 1;
+
+        // Extract the segment
+        std::vector<unsigned char> extractedSegment(segmentWidth * segmentHeight, 0);
+        for (int y = minY; y <= maxY; y++) {
+            for (int x = minX; x <= maxX; x++) {
+                extractedSegment[(y - minY) * segmentWidth + (x - minX)] = segment[y * width + x];
+            }
+        }
+
+        // Store the segment data
+        unsigned char* segmentData = new unsigned char[segmentWidth * segmentHeight];
+        std::copy(extractedSegment.begin(), extractedSegment.end(), segmentData);
+        segmentedData.push_back(std::make_tuple(segmentData, segmentWidth, segmentHeight));
+    }
+
+    return segmentedData;
+}
+
+float AreaRate(
+    const unsigned char* data, 
+    int width, int height, 
+    int bytesPerPixel
+) {
+    if (bytesPerPixel != 1) 
+    {
+        throw std::invalid_argument("Area rate only works on grayscale images");
+    }
+
+    int Q1Count = 0;
+    std::vector<Kernel> Q1 = Kernel::BitQuads('1');
+    for (Kernel filter : Q1) 
+    {
+        Q1Count += MaskCount(data, width, height, 1, 0, filter);
+    }
+
+    int Q2Count = 0;
+    std::vector<Kernel> Q2 = Kernel::BitQuads('2');
+    for (Kernel filter : Q2) 
+    {
+        Q2Count += MaskCount(data, width, height, 1, 0, filter);
+    }
+
+    int Q3Count = 0;
+    std::vector<Kernel> Q3 = Kernel::BitQuads('3');
+    for (Kernel filter : Q3) 
+    {
+        Q3Count += MaskCount(data, width, height, 1, 0, filter);
+    }
+
+    int Q4Count = 0;
+    std::vector<Kernel> Q4 = Kernel::BitQuads('4');
+    for (Kernel filter : Q4) 
+    {
+        Q4Count += MaskCount(data, width, height, 1, 0, filter);
+    }
+
+    int QDCount = 0;
+    std::vector<Kernel> QD = Kernel::BitQuads('D');
+    for (Kernel filter : QD) 
+    {
+        QDCount += MaskCount(data, width, height, 1, 0, filter);
+    }
+
+    float area = 1/4.0f * Q1Count + 1/2.0f * Q2Count + 7/8.0f * Q3Count + Q4Count + 3/4.0f * QDCount;
+
+    return area / (width * height);
+}
+
+float PerimeterRate(
+    const unsigned char* data, 
+    int width, int height, 
+    int bytesPerPixel
+) {
+    if (bytesPerPixel != 1) 
+    {
+        throw std::invalid_argument("Perimeter rate only works on grayscale images");
+    }
+
+    int Q1Count = 0;
+    std::vector<Kernel> Q1 = Kernel::BitQuads('1');
+    for (Kernel filter : Q1) 
+    {
+        Q1Count += MaskCount(data, width, height, 1, 0, filter);
+    }
+
+    int Q2Count = 0;
+    std::vector<Kernel> Q2 = Kernel::BitQuads('2');
+    for (Kernel filter : Q2) 
+    {
+        Q2Count += MaskCount(data, width, height, 1, 0, filter);
+    }
+
+    int Q3Count = 0;
+    std::vector<Kernel> Q3 = Kernel::BitQuads('3');
+    for (Kernel filter : Q3) 
+    {
+        Q3Count += MaskCount(data, width, height, 1, 0, filter);
+    }
+
+    int QDCount = 0;
+    std::vector<Kernel> QD = Kernel::BitQuads('D');
+    for (Kernel filter : QD) 
+    {
+        QDCount += MaskCount(data, width, height, 1, 0, filter);
+    }
+
+    float perimeter = Q2Count + 1/std::sqrt(2.0f) * (Q1Count + Q3Count + 2.0f * QDCount);
+
+    return perimeter / ((width + height) * 2);
+}
+
+float EulerNumber(
+    const unsigned char* data, 
+    int width, int height, 
+    int bytesPerPixel,
+    bool connectivity4
+) {
+    if (bytesPerPixel != 1) 
+    {
+        throw std::invalid_argument("Euler number only works on grayscale images");
+    }
+
+    int Q1Count = 0;
+    std::vector<Kernel> Q1 = Kernel::BitQuads('1');
+    for (Kernel filter : Q1) 
+    {
+        Q1Count += MaskCount(data, width, height, 1, 0, filter);
+    }
+
+    int Q3Count = 0;
+    std::vector<Kernel> Q3 = Kernel::BitQuads('3');
+    for (Kernel filter : Q3) 
+    {
+        Q3Count += MaskCount(data, width, height, 1, 0, filter);
+    }
+
+    int QDCount = 0;
+    std::vector<Kernel> QD = Kernel::BitQuads('D');
+    for (Kernel filter : QD) 
+    {
+        QDCount += MaskCount(data, width, height, 1, 0, filter);
+    }
+
+    if (connectivity4)
+    {
+        return 1/4.0f * Q1Count - 1/4.0f * Q3Count + 1/2.0f * QDCount;
+    }
+    else
+    {
+        return 1/4.0f * Q1Count - 1/4.0f * Q3Count - 1/2.0f * QDCount;
+    }
+}
+
+float SpatialMoment(
+    const unsigned char* data, 
+    int width, int height, 
+    int bytesPerPixel,
+    int p, 
+    int q
+) {
+    if (bytesPerPixel != 1) 
+    {
+        throw std::invalid_argument("Spatial moment only works on grayscale images");
+    }
+
+    float moment = 0;
+    for (int y = 0; y < height; y++) 
+    {
+        for (int x = 0; x < width; x++) 
+        {
+            int index = y * width + x;
+            moment += std::pow(x, p) * std::pow(y, q) * data[index];
+        }
+    }
+
+    return moment;
+}
+
+std::pair<float, float> Centroid(
+    const unsigned char* data, 
+    int width, int height, 
+    int bytesPerPixel
+) {
+    if (bytesPerPixel != 1) 
+    {
+        throw std::invalid_argument("Centroid only works on grayscale images");
+    }
+
+    float M00 = SpatialMoment(data, width, height, 1, 0, 0);
+    float M10 = SpatialMoment(data, width, height, 1, 1, 0);
+    float M01 = SpatialMoment(data, width, height, 1, 0, 1);
+
+    return std::make_pair(M10 / M00, M01 / M00);
+}
+
+float Symmetry(
+    const unsigned char* data, 
+    int width, int height, 
+    int bytesPerPixel
+) {
+    if (bytesPerPixel != 1) 
+    {
+        throw std::invalid_argument("Symmetry only works on grayscale images");
+    }
+
+    std::vector<unsigned char> negative = ToNegative(data, width, height, 1, 0);
+
+    return MSE(data, negative.data(), width * height);
+}
+
+float Circularity(
+    const unsigned char* data, 
+    int width, int height, 
+    int bytesPerPixel
+) {
+    if (bytesPerPixel != 1) 
+    {
+        throw std::invalid_argument("Circularity only works on grayscale images");
+    }
+
+    float area = AreaRate(data, width, height, 1) * width * height;
+    float perimeter = PerimeterRate(data, width, height, 1) * ((width + height) * 2);
+
+    return 4 * 3.14159265358979323846f * area / (perimeter * perimeter);
 }

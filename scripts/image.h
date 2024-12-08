@@ -62,13 +62,26 @@ public:
     static Image FSEDDither(const Image& img, int channel, const std::string& method, int param, bool serpentine = false);
 
     // Geometric Modification functions
-    static Image Rotate(const Image& img, float angle);
+    static Image Rotate(const Image& img, float angle, const std::string& interpolateMethod = "nearest");
     static Image Scale(const Image& img, float scaleX, float scaleY, const std::string& interpolateMethod = "nearest");
-    static Image Translate(const Image& img, int offsetX, int offsetY);
+    static Image Translate(const Image& img, float offsetX, float offsetY, const std::string& interpolateMethod = "nearest");
+    static Image Shear(const Image& img, float shearX, float shearY, const std::string& interpolateMethod = "nearest");
     static Image CircleWarp(const Image& img, bool inverse = false);
 
     // Texture Analysis functions
-    static std::vector<int> TextureCluster(const std::vector<Image>& imgs, int channel, int numOfClusters);
+    static std::vector<int> TextureCluster(const std::vector<Image>& imgs, int filterSize, int numOfClusters, int numOfIterations);
+    static Image TextureSegment(const Image& img, int channel, int filterSize, int patchSize, int numOfClusters, int numOfIterations);
+
+    // Feature Extraction functions
+    static std::vector<Image> Segment(const Image& img, int minArea = 9);
+    float GetAspectRatio();
+    float GetAreaRate();
+    float GetPerimeterRate();
+    float GetEulerNumber(bool connectivity4 = true);
+    float GetSpatialMoment(int p, int q);
+    std::pair<float, float> GetCentroid();
+    float GetSymmetry();
+    float GetCircularity();
 
 public:
     std::vector<unsigned char> m_data;

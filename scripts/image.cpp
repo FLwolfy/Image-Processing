@@ -1,6 +1,8 @@
 #include <image.h>
-
+#include <utils.h>
 #include <stdexcept>
+#include <cmath>
+
 
 ///////////////////////////////////////////////////////////////
 ///////////////////////// PUBLIC APIS /////////////////////////
@@ -263,15 +265,31 @@ Image Image::FSEDDither(const Image& img, int channel, const std::string& method
 
 ///////////// Geometric Modification functions /////////////
 
-Image Image::Rotate(const Image& img, float angle)
+Image Image::Rotate(const Image& img, float angle, const std::string& interpolateMethod)
 {
-    std::vector<unsigned char> rotatedData = Rotating(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, angle);
+    std::vector<unsigned char> rotatedData;
+
+    if (interpolateMethod == "nearest")
+    {
+        rotatedData = Rotating(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, angle, 0);
+    }
+    else if (interpolateMethod == "bilinear")
+    {
+        rotatedData = Rotating(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, angle, 1);
+    }
+    else
+    {
+        throw std::invalid_argument("Invalid interpolation method");
+    }
 
     float radian = angle * 3.14159265358979323846f / 180.0f;
     float cosAngle = std::cos(radian);
     float sinAngle = std::sin(radian);
+
+    int newWidth = static_cast<int>(std::abs(img.m_width * cosAngle) + std::abs(img.m_height * sinAngle));
+    int newHeight = static_cast<int>(std::abs(img.m_width * sinAngle) + std::abs(img.m_height * cosAngle));
     
-    Image rotatedImage = Image(static_cast<int>(std::abs(img.m_width * cosAngle) + std::abs(img.m_height * sinAngle)), static_cast<int>(std::abs(img.m_width * sinAngle) + std::abs(img.m_height * cosAngle)), img.m_bytesPerPixel);
+    Image rotatedImage = Image(newWidth, newHeight, img.m_bytesPerPixel);
     rotatedImage.m_data = rotatedData;
 
     return rotatedImage;
@@ -293,21 +311,66 @@ Image Image::Scale(const Image& img, float scaleX, float scaleY, const std::stri
     {
         throw std::invalid_argument("Invalid interpolation method");
     }
+
+    int newWidth = static_cast<int>(img.m_width * scaleX);
+    int newHeight = static_cast<int>(img.m_height * scaleY);
     
-    Image scaledImage = Image(static_cast<int>(img.m_width * scaleX), static_cast<int>(img.m_height * scaleY), img.m_bytesPerPixel);
+    Image scaledImage = Image(newWidth, newHeight, img.m_bytesPerPixel);
     scaledImage.m_data = scaledData;
 
     return scaledImage;
 }
 
-Image Image::Translate(const Image& img, int offsetX, int offsetY)
+Image Image::Translate(const Image& img, float offsetX, float offsetY, const std::string& interpolateMethod)
 {
-    std::vector<unsigned char> translatedData = Translating(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, offsetX, offsetY);
+    std::vector<unsigned char> translatedData;
 
-    Image translatedImage = Image(img.m_width + std::abs(offsetX), img.m_height + std::abs(offsetY), img.m_bytesPerPixel);
+    if (interpolateMethod == "nearest")
+    {
+        translatedData = Translating(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, offsetX, offsetY, 0);
+    }
+    else if (interpolateMethod == "bilinear")
+    {
+        translatedData = Translating(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, offsetX, offsetY, 1);
+    }
+    else
+    {
+        throw std::invalid_argument("Invalid interpolation method");
+    }
+
+    int newWidth = static_cast<int>(img.m_width + std::abs(offsetX));
+    int newHeight = static_cast<int>(img.m_height + std::abs(offsetY));
+
+    Image translatedImage = Image(newWidth, newHeight, img.m_bytesPerPixel);
     translatedImage.m_data = translatedData;
 
     return translatedImage;
+}
+
+Image Image::Shear(const Image& img, float shearX, float shearY, const std::string& interpolateMethod)
+{
+    std::vector<unsigned char> shearedData;
+
+    if (interpolateMethod == "nearest")
+    {
+        shearedData = Shearing(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, shearX, shearY, 0);
+    }
+    else if (interpolateMethod == "bilinear")
+    {
+        shearedData = Shearing(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, shearX, shearY, 1);
+    }
+    else
+    {
+        throw std::invalid_argument("Invalid interpolation method");
+    }
+
+    int newWidth = static_cast<int>(img.m_width + std::abs(shearX * img.m_height));
+    int newHeight = static_cast<int>(img.m_height + std::abs(shearY * img.m_width));
+
+    Image shearedImage = Image(newWidth, newHeight, img.m_bytesPerPixel);
+    shearedImage.m_data = shearedData;
+
+    return shearedImage;
 }
 
 Image Image::CircleWarp(const Image& img, bool inverse)
@@ -329,18 +392,91 @@ Image Image::CircleWarp(const Image& img, bool inverse)
     return warpedImage;
 }
 
-std::vector<int> Image::TextureCluster(const std::vector<Image>& imgs, int channel, int numOfClusters)
+///////////// Texture Analysis functions /////////////
+
+std::vector<int> Image::TextureCluster(const std::vector<Image>& imgs, int filterSize, int numOfClusters, int numOfIterations)
 {
     std::vector<std::vector<float>> featureMatrix;
 
     for (const Image& img : imgs)
     {
-        std::vector<float> feature = LawsFilterFeatureExtract(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, channel);
+        std::vector<float> feature = TextureFeatureExtract(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, filterSize);
         featureMatrix.push_back(feature);
     }
 
-    std::vector<int> clusterResult = KMEANSFeatureClustering(featureMatrix, numOfClusters);
+    std::vector<int> clusterResult = KMEANSClustering(featureMatrix, numOfClusters, numOfIterations);
     return clusterResult;
+}
+
+Image Image::TextureSegment(const Image& img, int channel, int filterSize, int patchSize, int numOfClusters, int numOfIterations)
+{
+    std::vector<unsigned char> segmentedData = TextureSegmentation(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, channel, filterSize, patchSize, numOfClusters, numOfIterations);
+
+    Image segmentedImage = Image(img.m_width, img.m_height, img.m_bytesPerPixel);
+    segmentedImage.m_data = segmentedData;
+
+    return segmentedImage;
+}
+
+///////////// Feature Extraction functions /////////////
+
+std::vector<Image> Image::Segment(const Image& img, int minArea)
+{
+    std::vector<std::tuple<const unsigned char*, int, int>> segments = SegmentImage(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, minArea);
+
+    std::vector<Image> segmentedImages;
+    for (const std::tuple<const unsigned char*, int, int>& segment : segments)
+    {
+        const unsigned char* data;
+        int width, height;
+        std::tie(data, width, height) = segment;
+
+        Image segmentImage = Image(width, height, img.m_bytesPerPixel);
+        segmentImage.m_data.assign(data, data + (width * height * img.m_bytesPerPixel));
+        segmentedImages.push_back(segmentImage);
+    }
+
+    return segmentedImages;
+}
+
+float Image::GetAspectRatio()
+{
+    return static_cast<float>(m_width) / m_height;
+}
+
+float Image::GetAreaRate()
+{
+    return AreaRate(m_data.data(), m_width, m_height, m_bytesPerPixel);
+}
+
+float Image::GetPerimeterRate()
+{
+    return PerimeterRate(m_data.data(), m_width, m_height, m_bytesPerPixel);
+}
+
+float Image::GetEulerNumber(bool connectivity4)
+{
+    return EulerNumber(m_data.data(), m_width, m_height, m_bytesPerPixel, connectivity4);
+}
+
+float Image::GetSpatialMoment(int p, int q)
+{
+    return SpatialMoment(m_data.data(), m_width, m_height, m_bytesPerPixel, p, q);
+}
+
+std::pair<float, float> Image::GetCentroid()
+{
+    return Centroid(m_data.data(), m_width, m_height, m_bytesPerPixel);
+}
+
+float Image::GetSymmetry()
+{
+    return Symmetry(m_data.data(), m_width, m_height, m_bytesPerPixel);
+}
+
+float Image::GetCircularity()
+{
+    return Circularity(m_data.data(), m_width, m_height, m_bytesPerPixel);
 }
 
 //////////////////////////////////////////////////////////////////

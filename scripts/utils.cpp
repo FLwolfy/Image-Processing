@@ -1,7 +1,11 @@
 #include <utils.h>
+
 #include <functional>
 #include <iostream>
 #include <random>
+#include <math.h>
+#include <stdlib.h>
+#include <algorithm>
 
 ///////////////////////// Non-Destructive Functions /////////////////////////
 
@@ -61,6 +65,18 @@ unsigned char Minimax(const unsigned char* array, int length)
     return Min(maxArray.data(), step);
 }
 
+unsigned char Mean(const unsigned char* array, int length)
+{
+    int sum = 0;
+
+    for (int i = 0; i < length; ++i)
+    {
+        sum += array[i];
+    }
+
+    return sum / length;
+}
+
 unsigned char Median(const unsigned char* array, int length, bool pseudo) 
 {
     if (pseudo) 
@@ -72,6 +88,33 @@ unsigned char Median(const unsigned char* array, int length, bool pseudo)
         std::vector<unsigned char> sortedArray = Sort(array, length);
         return sortedArray[length / 2];
     }
+}
+
+float Variance(const unsigned char* array, int length) 
+{
+    float mean = Mean(array, length);
+    float sum = 0;
+
+    for (int i = 0; i < length; i++) 
+    {
+        float diff = array[i] - mean;
+        sum += diff * diff;
+    }
+
+    return sum / length;
+}
+
+float MSE(const unsigned char* data1, const unsigned char* data2, int length)
+{
+    float sum = 0;
+
+    for (int i = 0; i < length; ++i)
+    {
+        float diff = data1[i] - data2[i];
+        sum += diff * diff;
+    }
+
+    return sum / length;
 }
 
 ///////////////////////// Array Functions /////////////////////////
@@ -364,85 +407,329 @@ std::vector<bool> MaskBool(
     return mask;
 }
 
-std::vector<int> kMeansClustering(
-    const std::vector<std::vector<float>>& data,
-    int numOfClusters
+int MaskCount(
+    const unsigned char* data,
+    int width, int height,
+    int bytesPerPixel,
+    int channel,
+    const Kernel& kernel
 ) {
-    int numOfPoints = data.size();
-    int numOfFeatures = data[0].size();
+    int count = 0;
+    int kernelSize = kernel.m_size;
 
-    // 计算两点之间的欧几里得距离
-    auto euclideanDistance = [](const std::vector<float>& a, const std::vector<float>& b) -> float {
-        float distance = 0.0;
-        for (size_t i = 0; i < a.size(); ++i) {
-            distance += (a[i] - b[i]) * (a[i] - b[i]);
-        }
-        return std::sqrt(distance);
-    };
+    for (int y = 0; y <= height - kernelSize; y++) 
+    {
+        for (int x = 0; x <= width - kernelSize; x++) 
+        {
+            bool match = true;
 
-    // 初始化聚类中心（随机选择数据点作为初始中心）
-    std::vector<std::vector<float>> centroids(numOfClusters, std::vector<float>(numOfFeatures, 0));
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<> dis(0, numOfPoints - 1);
-    
-    // 随机选择初始中心
-    for (int i = 0; i < numOfClusters; ++i) {
-        centroids[i] = data[dis(gen)];
-    }
+            for (int i = 0; i < kernelSize; i++) 
+            {
+                for (int j = 0; j < kernelSize; j++) 
+                {
+                    int curX = x + j;
+                    int curY = y + i;
+                    int curIndex = (curY * width + curX) * bytesPerPixel;
 
-    std::vector<int> clusterAssignments(numOfPoints, -1);  // 每个数据点的聚类编号
-    std::vector<int> pointsInCluster(numOfClusters, 0);     // 每个聚类中点的数量
-    std::vector<std::vector<float>> newCentroids(numOfClusters, std::vector<float>(numOfFeatures, 0));
+                    int pixelValue = data[curIndex + channel] == 0 ? 0 : 1;
 
-    bool converged = false;
-    while (!converged) {
-        converged = true;
-        
-        // Step 1: 为每个点分配聚类
-        std::fill(pointsInCluster.begin(), pointsInCluster.end(), 0);
-        for (int i = 0; i < numOfPoints; ++i) {
-            float minDistance = std::numeric_limits<float>::max();
-            int bestCluster = -1;
-            for (int j = 0; j < numOfClusters; ++j) {
-                float dist = euclideanDistance(data[i], centroids[j]);
-                if (dist < minDistance) {
-                    minDistance = dist;
-                    bestCluster = j;
+                    if (pixelValue != kernel[i * kernelSize + j]) 
+                    {
+                        match = false;
+                        break;
+                    }
                 }
+                if (!match) break;
             }
-            
-            // Step 2: 更新聚类分配
-            if (clusterAssignments[i] != bestCluster) {
-                converged = false;
-                clusterAssignments[i] = bestCluster;
-            }
-            pointsInCluster[bestCluster]++;
-        }
 
-        // Step 3: 重新计算每个聚类的中心
-        std::fill(newCentroids.begin(), newCentroids.end(), std::vector<float>(numOfFeatures, 0));
-        for (int i = 0; i < numOfPoints; ++i) {
-            int clusterId = clusterAssignments[i];
-            for (int j = 0; j < numOfFeatures; ++j) {
-                newCentroids[clusterId][j] += data[i][j];
+            if (match) 
+            {
+                count++;
             }
-        }
-
-        // 求每个聚类中心的均值
-        for (int i = 0; i < numOfClusters; ++i) {
-            if (pointsInCluster[i] > 0) {
-                for (int j = 0; j < numOfFeatures; ++j) {
-                    newCentroids[i][j] /= pointsInCluster[i];
-                }
-            }
-        }
-
-        // 检查是否收敛
-        if (!converged) {
-            centroids = newCentroids;
         }
     }
 
-    return clusterAssignments;
+    return count;
+}
+
+///////////////////////// K-Means Clustering /////////////////////////
+
+class Point
+{
+private:
+	int id_point, id_cluster;
+	std::vector<double> values;
+	int total_values;
+
+public:
+	Point(int id_point, std::vector<double>& values)
+	{
+		this->id_point = id_point;
+		total_values = values.size();
+
+		for(int i = 0; i < total_values; i++)
+			this->values.push_back(values[i]);
+
+		id_cluster = -1;
+	}
+
+	int getID()
+	{
+		return id_point;
+	}
+
+	void setCluster(int id_cluster)
+	{
+		this->id_cluster = id_cluster;
+	}
+
+	int getCluster()
+	{
+		return id_cluster;
+	}
+
+	double getValue(int index)
+	{
+		return values[index];
+	}
+
+	int getTotalValues()
+	{
+		return total_values;
+	}
+
+	void addValue(double value)
+	{
+		values.push_back(value);
+	}
+};
+
+class Cluster
+{
+private:
+	int id_cluster;
+	std::vector<double> central_values;
+	std::vector<Point> points;
+
+public:
+	Cluster(int id_cluster, Point point)
+	{
+		this->id_cluster = id_cluster;
+
+		int total_values = point.getTotalValues();
+
+		for(int i = 0; i < total_values; i++)
+			central_values.push_back(point.getValue(i));
+
+		points.push_back(point);
+	}
+
+	void addPoint(Point point)
+	{
+		points.push_back(point);
+	}
+
+	bool removePoint(int id_point)
+	{
+		int total_points = points.size();
+
+		for(int i = 0; i < total_points; i++)
+		{
+			if(points[i].getID() == id_point)
+			{
+				points.erase(points.begin() + i);
+				return true;
+			}
+		}
+		return false;
+	}
+
+	double getCentralValue(int index)
+	{
+		return central_values[index];
+	}
+
+	void setCentralValue(int index, double value)
+	{
+		central_values[index] = value;
+	}
+
+	Point getPoint(int index)
+	{
+		return points[index];
+	}
+
+	int getTotalPoints()
+	{
+		return points.size();
+	}
+
+	int getID()
+	{
+		return id_cluster;
+	}
+};
+
+class KMeans
+{
+private:
+	int K; // number of clusters
+	int total_values, total_points, max_iterations;
+	std::vector<Cluster> clusters;
+
+	// return ID of nearest center (uses euclidean distance)
+	int getIDNearestCenter(Point point)
+	{
+		double sum = 0.0, min_dist;
+		int id_cluster_center = 0;
+
+		for(int i = 0; i < total_values; i++)
+		{
+			sum += pow(clusters[0].getCentralValue(i) -
+					   point.getValue(i), 2.0);
+		}
+
+		min_dist = sqrt(sum);
+
+		for(int i = 1; i < K; i++)
+		{
+			double dist;
+			sum = 0.0;
+
+			for(int j = 0; j < total_values; j++)
+			{
+				sum += pow(clusters[i].getCentralValue(j) -
+						   point.getValue(j), 2.0);
+			}
+
+			dist = sqrt(sum);
+
+			if(dist < min_dist)
+			{
+				min_dist = dist;
+				id_cluster_center = i;
+			}
+		}
+
+		return id_cluster_center;
+	}
+
+public:
+	KMeans(int K, int total_points, int total_values, int max_iterations)
+	{
+		this->K = K;
+		this->total_points = total_points;
+		this->total_values = total_values;
+		this->max_iterations = max_iterations;
+	}
+
+	std::vector<int> run(std::vector<Point> & points)
+	{
+		if(K > total_points)
+			throw std::invalid_argument("K is set to a value larger than the number of points.");
+
+		std::vector<int> prohibited_indexes;
+
+		// choose K distinct values for the centers of the clusters
+		for(int i = 0; i < K; i++)
+		{
+			while(true)
+			{
+				int index_point = rand() % total_points;
+
+				if(find(prohibited_indexes.begin(), prohibited_indexes.end(),
+						index_point) == prohibited_indexes.end())
+				{
+					prohibited_indexes.push_back(index_point);
+					points[index_point].setCluster(i);
+					Cluster cluster(i, points[index_point]);
+					clusters.push_back(cluster);
+					break;
+				}
+			}
+		}
+
+		int iter = 1;
+
+		while(true)
+		{
+			bool done = true;
+
+			// associates each point to the nearest center
+			for(int i = 0; i < total_points; i++)
+			{
+				int id_old_cluster = points[i].getCluster();
+				int id_nearest_center = getIDNearestCenter(points[i]);
+
+				if(id_old_cluster != id_nearest_center)
+				{
+					if(id_old_cluster != -1)
+						clusters[id_old_cluster].removePoint(points[i].getID());
+
+					points[i].setCluster(id_nearest_center);
+					clusters[id_nearest_center].addPoint(points[i]);
+					done = false;
+				}
+			}
+
+			// recalculating the center of each cluster
+			for(int i = 0; i < K; i++)
+			{
+				for(int j = 0; j < total_values; j++)
+				{
+					int total_points_cluster = clusters[i].getTotalPoints();
+					double sum = 0.0;
+
+					if(total_points_cluster > 0)
+					{
+						for(int p = 0; p < total_points_cluster; p++)
+							sum += clusters[i].getPoint(p).getValue(j);
+						clusters[i].setCentralValue(j, sum / total_points_cluster);
+					}
+				}
+			}
+
+			if(done == true || iter >= max_iterations)
+			{
+				break;
+			}
+
+			iter++;
+		}
+
+		// return the result of the K-Means algorithm
+        std::vector<int> result(total_points);
+        for (int i = 0; i < total_points; i++) {
+            result[i] = points[i].getCluster();
+        }
+
+        return result;
+	}
+};
+
+std::vector<int> KMEANSClustering(
+    const std::vector<std::vector<float>>& featureMatrix,
+    int K,
+    int max_iterations
+) {
+    int total_points = featureMatrix.size();
+    int total_values = featureMatrix[0].size();
+
+    std::vector<Point> points;
+
+    for(int i = 0; i < total_points; i++)
+    {
+        std::vector<double> values;
+
+        for(int j = 0; j < total_values; j++)
+        {
+            values.push_back(featureMatrix[i][j]);
+        }
+
+        Point p(i, values);
+        points.push_back(p);
+    }
+
+    KMeans kmeans(K, total_points, total_values, max_iterations);
+    return kmeans.run(points);
 }

@@ -946,32 +946,137 @@ Kernel Kernel::FloydSteinberg()
 
 ///////////////////////// Texture analysis Kernel /////////////////////////
 
-std::vector<Kernel> Kernel::LawsFilters()
+std::vector<Kernel> Kernel::LawsFilters(int size)
 {
+    if (size != 3 && size != 5)
+    {
+        throw std::invalid_argument("Laws' Filter size must be 3 or 5.");
+    }
+
     std::vector<Kernel> kernels;
-
-    std::vector<float> L3 = {1/6.0f, 2/6.0f, 1/6.0f};
-    std::vector<float> E3 = {-1/2.0f, 0, 1/2.0f};
-    std::vector<float> S3 = {1/2.0f, -2/2.0f, 1/2.0f};
-
     std::vector<std::vector<float>> filters;
 
-    for (const std::vector<float>& L : {L3, E3, S3})
+    if (size == 3)
     {
-        for (const std::vector<float>& M : {L, L, L})
+        std::vector<float> L3 = {1/6.0f, 2/6.0f, 1/6.0f};
+        std::vector<float> E3 = {-1/2.0f, 0, 1/2.0f};
+        std::vector<float> S3 = {1/2.0f, -2/2.0f, 1/2.0f};
+        
+        for (const std::vector<float>& L : {L3, E3, S3})
         {
-            for (const std::vector<float>& S : {L, L, L})
+            for (const std::vector<float>& M : {L, L, L})
             {
-                filters.push_back({L[0] * M[0] * S[0], L[0] * M[1] * S[0], L[0] * M[2] * S[0],
-                                   L[0] * M[0] * S[1], L[0] * M[1] * S[1], L[0] * M[2] * S[1],
-                                   L[0] * M[0] * S[2], L[0] * M[1] * S[2], L[0] * M[2] * S[2]});
+                for (const std::vector<float>& S : {L, L, L})
+                {
+                    filters.push_back({L[0] * M[0] * S[0], L[0] * M[1] * S[0], L[0] * M[2] * S[0],
+                                       L[0] * M[0] * S[1], L[0] * M[1] * S[1], L[0] * M[2] * S[1],
+                                       L[0] * M[0] * S[2], L[0] * M[1] * S[2], L[0] * M[2] * S[2]});
+                }
+            }
+        }
+    }
+    else if (size == 5)
+    {
+        std::vector<float> L5 = {1/24.0f, 4/24.0f, 6/24.0f, 4/24.0f, 1/24.0f};
+        std::vector<float> E5 = {-1/6.0f, -2/6.0f, 0, 2/6.0f, 1/6.0f};
+        std::vector<float> S5 = {1/4.0f, 0, -2/4.0f, 0, 1/4.0f};
+
+        for (const std::vector<float>& L : {L5, E5, S5})
+        {
+            for (const std::vector<float>& M : {L, L, L, L, L})
+            {
+                for (const std::vector<float>& S : {L, L, L, L, L})
+                {
+                    filters.push_back({L[0] * M[0] * S[0], L[0] * M[1] * S[0], L[0] * M[2] * S[0], L[0] * M[3] * S[0], L[0] * M[4] * S[0],
+                                       L[0] * M[0] * S[1], L[0] * M[1] * S[1], L[0] * M[2] * S[1], L[0] * M[3] * S[1], L[0] * M[4] * S[1],
+                                       L[0] * M[0] * S[2], L[0] * M[1] * S[2], L[0] * M[2] * S[2], L[0] * M[3] * S[2], L[0] * M[4] * S[2],
+                                       L[0] * M[0] * S[3], L[0] * M[1] * S[3], L[0] * M[2] * S[3], L[0] * M[3] * S[3], L[0] * M[4] * S[3],
+                                       L[0] * M[0] * S[4], L[0] * M[1] * S[4], L[0] * M[2] * S[4], L[0] * M[3] * S[4], L[0] * M[4] * S[4]});
+                }
             }
         }
     }
 
     for (const std::vector<float>& filter : filters)
     {
-        kernels.push_back(Kernel(filter, 3));
+        kernels.push_back(Kernel(filter, size));
+    }
+
+    return kernels;
+}
+
+
+///////////////////////// Bit Quads Kernel /////////////////////////
+
+struct BitQuadsPattern
+{
+    static const std::vector<std::vector<float>> Q0;
+    static const std::vector<std::vector<float>> Q1;
+    static const std::vector<std::vector<float>> Q2;
+    static const std::vector<std::vector<float>> Q3;
+    static const std::vector<std::vector<float>> Q4;
+    static const std::vector<std::vector<float>> QD;
+}; 
+
+const std::vector<std::vector<float>> BitQuadsPattern::Q0 = {
+    {0, 0,
+     0, 0}
+};
+const std::vector<std::vector<float>> BitQuadsPattern::Q1 = {
+    {0, 0,
+     0, 1},
+    {0, 0,
+     1, 0},
+    {0, 1,
+     0, 0},
+    {1, 0,
+     0, 0}
+};
+const std::vector<std::vector<float>> BitQuadsPattern::Q2 = {
+    {1, 1,
+     0, 0},
+    {0, 1,
+     0, 1},
+    {0, 0,
+     1, 1},
+    {1, 0,
+     1, 0}
+};
+const std::vector<std::vector<float>> BitQuadsPattern::Q3 = {
+    {1, 1,
+     0, 1},
+    {1, 0,
+     1, 1},
+    {0, 1,
+     1, 1},
+    {1, 1,
+     1, 0}
+};
+const std::vector<std::vector<float>> BitQuadsPattern::Q4 = {
+    {1, 1,
+     1, 1}
+};
+const std::vector<std::vector<float>> BitQuadsPattern::QD = {
+    {1, 0,
+     0, 1},
+    {0, 1,
+     1, 0}
+};
+
+std::vector<Kernel> Kernel::BitQuads(char pattern)
+{
+    std::vector<Kernel> kernels;
+
+    switch (pattern)
+    {
+        case '0': for (const std::vector<float>& filter : BitQuadsPattern::Q0) kernels.push_back(Kernel(filter, 2)); break;
+        case '1': for (const std::vector<float>& filter : BitQuadsPattern::Q1) kernels.push_back(Kernel(filter, 2)); break;
+        case '2': for (const std::vector<float>& filter : BitQuadsPattern::Q2) kernels.push_back(Kernel(filter, 2)); break;
+        case '3': for (const std::vector<float>& filter : BitQuadsPattern::Q3) kernels.push_back(Kernel(filter, 2)); break;
+        case '4': for (const std::vector<float>& filter : BitQuadsPattern::Q4) kernels.push_back(Kernel(filter, 2)); break;
+        case 'D': for (const std::vector<float>& filter : BitQuadsPattern::QD) kernels.push_back(Kernel(filter, 2)); break;
+
+        default: throw std::invalid_argument("Invalid Bit Quads pattern.");
     }
 
     return kernels;

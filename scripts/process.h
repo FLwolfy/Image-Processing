@@ -181,7 +181,8 @@ std::vector<unsigned char> Rotating(
     const unsigned char* data, 
     int width, int height, 
     int bytesPerPixel,
-    float angle // clockwise
+    float angle, // clockwise,
+    int interpolation // 0: nearest, 1: bilinear
 );
 
 std::vector<unsigned char> Scaling(
@@ -197,8 +198,18 @@ std::vector<unsigned char> Translating(
     const unsigned char* data, 
     int width, int height, 
     int bytesPerPixel,
-    int offsetX, 
-    int offsetY
+    float offsetX, 
+    float offsetY,
+    int interpolation // 0: nearest, 1: bilinear
+);
+
+std::vector<unsigned char> Shearing(
+    const unsigned char* data, 
+    int width, int height, 
+    int bytesPerPixel,
+    float shearX,
+    float shearY,
+    int interpolation // 0: nearest, 1: bilinear
 );
 
 std::vector<unsigned char> SquareToCircleWarp(
@@ -215,14 +226,87 @@ std::vector<unsigned char> CircleToSquareWarp(
 
 ///////////////////////// Texture Analysis functions /////////////////////////////
 
-std::vector<float> LawsFilterFeatureExtract(
+std::vector<float> TextureFeatureExtract(
     const unsigned char* data, 
     int width, int height, 
     int bytesPerPixel,
-    int channel
+    int filterSize
 );
 
-std::vector<int> KMEANSFeatureClustering(
-    const std::vector<std::vector<float>>& featureMatrix,
-    int numOfClusters
+std::vector<unsigned char> TextureSegmentation(
+    const unsigned char* data, 
+    int width, int height, 
+    int bytesPerPixel,
+    int channel,
+    int filterSize,
+    int patchSize,
+    int numOfClusters,
+    int numOfIterations
 );
+
+///////////////////////// Feature Extraction functions /////////////////////////////
+
+std::vector<std::tuple<const unsigned char*, int, int>> SegmentImage(
+    const unsigned char* data, 
+    int width, int height, 
+    int bytesPerPixel,
+    int minArea = 9
+);
+
+float AreaRate(
+    const unsigned char* data, 
+    int width, int height, 
+    int bytesPerPixel
+);
+
+float PerimeterRate(
+    const unsigned char* data, 
+    int width, int height, 
+    int bytesPerPixel
+);
+
+float EulerNumber(
+    const unsigned char* data, 
+    int width, int height, 
+    int bytesPerPixel,
+    bool connectivity4 // 4 or 8
+);
+
+float Symmetry(
+    const unsigned char* data, 
+    int width, int height, 
+    int bytesPerPixel
+);
+
+float SpatialMoment(
+    const unsigned char* data, 
+    int width, int height, 
+    int bytesPerPixel,
+    int p, 
+    int q
+);
+
+std::pair<float, float> Centroid(
+    const unsigned char* data, 
+    int width, int height, 
+    int bytesPerPixel
+);
+
+float Circularity(
+    const unsigned char* data, 
+    int width, int height, 
+    int bytesPerPixel
+);
+
+float StatisticalMean(
+    const unsigned char* data, 
+    int width, int height, 
+    int bytesPerPixel
+);
+
+float StatisticalVariance(
+    const unsigned char* data, 
+    int width, int height, 
+    int bytesPerPixel
+);
+

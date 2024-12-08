@@ -84,12 +84,25 @@ PYBIND11_MODULE(image_processing, m)
         .def_static("fsed_dither", &Image::FSEDDither, py::arg("img"), py::arg("channel"), py::arg("method"), py::arg("param"), py::arg("serpentine") = false)
 
         // Geometric Modification functions
-        .def_static("rotate", &Image::Rotate, py::arg("img"), py::arg("angle"))
+        .def_static("rotate", &Image::Rotate, py::arg("img"), py::arg("angle"), py::arg("interpolate_method") = "nearest")
         .def_static("scale", &Image::Scale, py::arg("img"), py::arg("scale_x"), py::arg("scale_y"), py::arg("interpolate_method") = "nearest")
-        .def_static("translate", &Image::Translate, py::arg("img"), py::arg("offset_x"), py::arg("offset_y"))
+        .def_static("translate", &Image::Translate, py::arg("img"), py::arg("offset_x"), py::arg("offset_y"), py::arg("interpolate_method") = "nearest")
+        .def_static("shear", &Image::Shear, py::arg("img"), py::arg("shear_x"), py::arg("shear_y"), py::arg("interpolate_method") = "nearest")
         .def_static("circle_warp", &Image::CircleWarp, py::arg("img"), py::arg("inverse") = false)
 
         // Texture Analysis functions
-        .def_static("texture_cluster", &Image::TextureCluster, py::arg("imgs"), py::arg("channel"), py::arg("num_of_clusters"))
+        .def_static("texture_cluster", &Image::TextureCluster, py::arg("imgs"), py::arg("filter_size"), py::arg("num_of_clusters"), py::arg("num_of_iterations"))
+        .def_static("texture_segment", &Image::TextureSegment, py::arg("img"), py::arg("channel"), py::arg("filter_size"), py::arg("patch_size"), py::arg("num_of_clusters"), py::arg("num_of_iterations"))
+    
+        // Feature Extraction functions
+        .def_static("segment", &Image::Segment, py::arg("img"), py::arg("min_area") = 9)
+        .def("get_aspect_ratio", &Image::GetAspectRatio)
+        .def("get_area_rate", &Image::GetAreaRate)
+        .def("get_perimeter_rate", &Image::GetPerimeterRate)
+        .def("get_euler_number", &Image::GetEulerNumber, py::arg("connectivity4") = false)
+        .def("get_spatial_moment", &Image::GetSpatialMoment, py::arg("p"), py::arg("q"))
+        .def("get_centroid", &Image::GetCentroid)
+        .def("get_symmetry", &Image::GetSymmetry)
+        .def("get_circularity", &Image::GetCircularity)
     ;
 }

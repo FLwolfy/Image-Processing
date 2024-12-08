@@ -34,7 +34,10 @@ public:
     static Kernel FloydSteinberg();
 
     // Texture analysis Kernel
-    static std::vector<Kernel> LawsFilters();
+    static std::vector<Kernel> LawsFilters(int size);
+
+    // Bit Quads Kernel
+    static std::vector<Kernel> BitQuads(char pattern);
 
 public:
     std::vector<float> m_values;

@@ -10,7 +10,7 @@ def show_image(image: Image, title: str):
     if image.bytes_per_pixel == 1:
         plt.imshow(image.raw_data.reshape(image.height, image.width), cmap="gray", vmin=0, vmax=255)
     else:
-        plt.imshow(image.raw_data.reshape(image.height, image.width, image.channels))
+        plt.imshow(image.raw_data.reshape(image.height, image.width, image.bytes_per_pixel))
     wrapped_title = "\n".join(textwrap.wrap(title, width=20))
     plt.title(wrapped_title)
     plt.axis('off')
@@ -21,11 +21,13 @@ def show_images(images: list[Image], subtitles: list[str], title: str = None):
     Plot multiple images with their respective titles.
     """
     fig, axes = plt.subplots(1, len(images), figsize=(15, 8 / np.log(2 * len(images))))
+    if len(images) == 1:
+        axes = [axes]
     for i, (image, t) in enumerate(zip(images, subtitles)):
         if image.bytes_per_pixel == 1:
             axes[i].imshow(image.raw_data.reshape(image.height, image.width), cmap="gray", vmin=0, vmax=255)
         else:
-            axes[i].imshow(image.raw_data.reshape(image.height, image.width, image.channels))
+            axes[i].imshow(image.raw_data.reshape(image.height, image.width, image.bytes_per_pixel))
         
         ax_width = axes[i].get_window_extent().width
         wrapped_title = "\n".join(textwrap.wrap(t, width=int(ax_width / 10)))
@@ -70,6 +72,8 @@ def plot_histograms(images: list[Image], subtitles: list[str], title: str = None
     if channels is None:
         channels = [0] * len(images)
     fig, axes = plt.subplots(1, len(images), figsize=(15, 8 / np.log(2 * len(images))))
+    if len(images) == 1:
+        axes = [axes]
     for i, (image, t, channel) in enumerate(zip(images, subtitles, channels)):
         histogram = image.get_cumulative_hist()[channel] if cumulative else image.get_hist()[channel]
         axes[i].bar(range(256), histogram, width=1, edgecolor='black')
