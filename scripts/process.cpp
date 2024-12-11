@@ -707,6 +707,60 @@ std::vector<unsigned char> ToLaplacianEdge(
     return edgeData;
 }
 
+std::vector<std::vector<std::pair<int, int>>> FindContours(
+    const unsigned char* edges,
+    int width, int height,
+    int bytesPerPixel,
+    int minLength
+) {
+    std::vector<std::vector<std::pair<int, int>>> contours;
+    std::vector<std::vector<bool>> visited(height, std::vector<bool>(width, false));
+
+    auto isValid = [&](int x, int y) {
+        return x >= 0 && x < width && y >= 0 && y < height && edges[y * width + x] == 255 && !visited[y][x];
+    };
+
+    std::vector<std::pair<int, int>> directions = {
+        {0, 1}, {1, 0}, {0, -1}, {-1, 0}, {1, 1}, {1, -1}, {-1, 1}, {-1, -1}
+    };
+
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            if (isValid(x, y)) {
+                std::vector<std::pair<int, int>> contour;
+                std::queue<std::pair<int, int>> q;
+                q.push({x, y});
+                visited[y][x] = true;
+
+                while (!q.empty()) {
+                    int curX = q.front().first;
+                    int curY = q.front().second;
+                    q.pop();
+                    contour.push_back({curX, curY});
+
+                    for (size_t i = 0; i < directions.size(); ++i) {
+                        int dx = directions[i].first;
+                        int dy = directions[i].second;
+
+                        int newX = curX + dx;
+                        int newY = curY + dy;
+                        if (isValid(newX, newY)) {
+                            q.push({newX, newY});
+                            visited[newY][newX] = true;
+                        }
+                    }
+                }
+
+                if (contour.size() >= minLength) {
+                    contours.push_back(contour);
+                }
+            }
+        }
+    }
+
+    return contours;
+}
+
 ///////////////////////// Morphological functions /////////////////////////
 
 std::vector<unsigned char> Morpho(
@@ -1480,6 +1534,126 @@ std::vector<unsigned char> CircleToSquareWarp(
                 for (int i = 0; i < bytesPerPixel; i++) 
                 {
                     warpedData[index + i] = data[srcIndex + i];
+                }
+            }
+        }
+    }
+
+    return warpedData;
+}
+
+std::vector<unsigned char> ToPerspectiveWarp(
+    const unsigned char* data, 
+    int width, int height, 
+    int bytesPerPixel,
+    const std::vector<std::pair<int, int>>& dstPoints,
+    const std::vector<std::pair<int, int>>& srcPoints
+) {
+    std::vector<unsigned char> warpedData(width * height * bytesPerPixel, 0);
+
+    if (srcPoints.size() != 4 || dstPoints.size() != 4) {
+        throw std::invalid_argument("srcPoints and dstPoints must contain exactly 4 points each.");
+    }
+
+    // Calculate the perspective transformation matrix
+    float A[8][8] = {0};
+    float B[8] = {0};
+
+    // Find the closest pairs between srcPoints and dstPoints
+    std::vector<std::pair<int, int>> srcMatched(4);
+    std::vector<std::pair<int, int>> dstMatched(4);
+    std::vector<bool> srcUsed(4, false);
+    std::vector<bool> dstUsed(4, false);
+
+    for (int i = 0; i < 4; ++i) {
+        float minDist = FLT_MAX;
+        int srcIdx = -1;
+        int dstIdx = -1;
+
+        for (int j = 0; j < 4; ++j) {
+            if (srcUsed[j]) continue;
+            for (int k = 0; k < 4; ++k) {
+                if (dstUsed[k]) continue;
+                float dist = std::sqrt(std::pow(srcPoints[j].first - dstPoints[k].first, 2) +
+                                       std::pow(srcPoints[j].second - dstPoints[k].second, 2));
+                if (dist < minDist) {
+                    minDist = dist;
+                    srcIdx = j;
+                    dstIdx = k;
+                }
+            }
+        }
+
+        srcMatched[i] = srcPoints[srcIdx];
+        dstMatched[i] = dstPoints[dstIdx];
+        srcUsed[srcIdx] = true;
+        dstUsed[dstIdx] = true;
+    }
+
+    for (int i = 0; i < 4; ++i) {
+        int x = srcMatched[i].first;
+        int y = srcMatched[i].second;
+        int u = dstMatched[i].first;
+        int v = dstMatched[i].second;
+
+        A[i * 2][0] = x;
+        A[i * 2][1] = y;
+        A[i * 2][2] = 1;
+        A[i * 2][6] = -x * u;
+        A[i * 2][7] = -y * u;
+        B[i * 2] = u;
+
+        A[i * 2 + 1][3] = x;
+        A[i * 2 + 1][4] = y;
+        A[i * 2 + 1][5] = 1;
+        A[i * 2 + 1][6] = -x * v;
+        A[i * 2 + 1][7] = -y * v;
+        B[i * 2 + 1] = v;
+    }
+
+    // Solve the linear system A * h = B
+    float h[8] = {0};
+    for (int i = 0; i < 8; ++i) {
+        for (int j = i; j < 8; ++j) {
+            if (A[j][i] != 0) {
+                std::swap(A[i], A[j]);
+                std::swap(B[i], B[j]);
+                break;
+            }
+        }
+        for (int j = i + 1; j < 8; ++j) {
+            float factor = A[j][i] / A[i][i];
+            for (int k = i; k < 8; ++k) {
+                A[j][k] -= factor * A[i][k];
+            }
+            B[j] -= factor * B[i];
+        }
+    }
+    for (int i = 7; i >= 0; --i) {
+        for (int j = i + 1; j < 8; ++j) {
+            B[i] -= A[i][j] * h[j];
+        }
+        h[i] = B[i] / A[i][i];
+    }
+
+    // Apply the perspective transformation
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            float u = (h[0] * x + h[1] * y + h[2]) / (h[6] * x + h[7] * y + 1);
+            float v = (h[3] * x + h[4] * y + h[5]) / (h[6] * x + h[7] * y + 1);
+
+            int srcX = static_cast<int>(u);
+            int srcY = static_cast<int>(v);
+
+            int index = (y * width + x) * bytesPerPixel;
+            if (srcX >= 0 && srcX < width && srcY >= 0 && srcY < height) {
+                int srcIndex = (srcY * width + srcX) * bytesPerPixel;
+                for (int i = 0; i < bytesPerPixel; ++i) {
+                    warpedData[index + i] = data[srcIndex + i];
+                }
+            } else {
+                for (int i = 0; i < bytesPerPixel; ++i) {
+                    warpedData[index + i] = 0; // Fill with black if out of bounds
                 }
             }
         }

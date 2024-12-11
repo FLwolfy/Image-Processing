@@ -44,6 +44,7 @@ public:
     // Edge Detection functions
     static Image SobelEdge(const Image& img, int channel, int windowSize, const std::string& suppressedMethod = "none", const std::string& thresholdMethod = "auto", const std::unordered_map<std::string, float>& thresholds = {});
     static Image LaplacianEdge(const Image& img, int channel, int windowSize, float noise);
+    std::vector<std::vector<std::pair<int, int>>> GetEdgeContours(int minLength = 30);
     
     // Morphological functions
     static Image Shrink(const Image& img, int channel, int iterations = 8);
@@ -67,6 +68,7 @@ public:
     static Image Translate(const Image& img, float offsetX, float offsetY, const std::string& interpolateMethod = "nearest");
     static Image Shear(const Image& img, float shearX, float shearY, const std::string& interpolateMethod = "nearest");
     static Image CircleWarp(const Image& img, bool inverse = false);
+    static Image PerspectiveWarp(const Image& img, const std::vector<std::pair<int, int>>& dstPoints, const std::vector<std::pair<int, int>>& srcPoints = {});
 
     // Texture Analysis functions
     static std::vector<int> TextureCluster(const std::vector<Image>& imgs, int filterSize, int numOfClusters, int numOfIterations);

@@ -733,3 +733,48 @@ std::vector<int> KMEANSClustering(
     KMeans kmeans(K, total_points, total_values, max_iterations);
     return kmeans.run(points);
 }
+
+std::vector<std::pair<int, int>> FindContours(
+    const unsigned char* edge,
+    int width, int height,
+    int bytesPerPixel
+) {
+    std::vector<std::pair<int, int>> contours;
+
+    for (int y = 1; y < height - 1; y++) 
+    {
+        for (int x = 1; x < width - 1; x++) 
+        {
+            int index = (y * width + x) * bytesPerPixel;
+            if (edge[index] == 255) 
+            {
+                bool isEdge = false;
+                for (int i = -1; i <= 1; i++) 
+                {
+                    for (int j = -1; j <= 1; j++) 
+                    {
+                        if (i == 0 && j == 0) { continue; }
+                        if (x + j < 0 || x + j >= width || y + i < 0 || y + i >= height) { continue; }
+
+                        int curX = std::min(std::max(x + j, 0), width - 1);
+                        int curY = std::min(std::max(y + i, 0), height - 1);
+                        int curIndex = (curY * width + curX) * bytesPerPixel;
+
+                        if (edge[index] > edge[curIndex]) 
+                        {
+                            isEdge = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (isEdge) 
+                {
+                    contours.push_back(std::make_pair(x, y));
+                }
+            }
+        }
+    }
+
+    return contours;
+}

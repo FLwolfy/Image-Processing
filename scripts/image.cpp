@@ -137,6 +137,12 @@ Image Image::LaplacianEdge(const Image& img, int channel, int windowSize, float 
     return edgeImage;
 }
 
+std::vector<std::vector<std::pair<int, int>>> Image::GetEdgeContours(int minLength)
+{
+    return FindContours(m_data.data(), m_width, m_height, m_bytesPerPixel, minLength);
+}
+
+
 ////////////// Morphological functions //////////////
 
 Image Image::Shrink(const Image& img, int channel, int iterations)
@@ -386,6 +392,26 @@ Image Image::CircleWarp(const Image& img, bool inverse)
         warpedData = SquareToCircleWarp(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel);
     }
     
+    Image warpedImage = Image(img.m_width, img.m_height, img.m_bytesPerPixel);
+    warpedImage.m_data = warpedData;
+
+    return warpedImage;
+}
+
+Image Image::PerspectiveWarp(const Image& img, const std::vector<std::pair<int, int>>& dstPoints, const std::vector<std::pair<int, int>>& srcPoints)
+{
+    std::vector<unsigned char> warpedData;
+
+    if (srcPoints.empty())
+    {
+        std::vector<std::pair<int, int>> defaultSrcPoints = { {0, 0}, {img.m_width - 1, 0}, {img.m_width - 1, img.m_height - 1}, {0, img.m_height - 1} };
+        warpedData = ToPerspectiveWarp(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, dstPoints, defaultSrcPoints);
+    }
+    else
+    {
+        warpedData = ToPerspectiveWarp(img.m_data.data(), img.m_width, img.m_height, img.m_bytesPerPixel, dstPoints, srcPoints);
+    }
+
     Image warpedImage = Image(img.m_width, img.m_height, img.m_bytesPerPixel);
     warpedImage.m_data = warpedData;
 

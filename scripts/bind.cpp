@@ -66,6 +66,7 @@ PYBIND11_MODULE(image_processing, m)
         // Edge Detection functions
         .def_static("sobel_edge", &Image::SobelEdge, py::arg("img"), py::arg("channel"), py::arg("window_size"), py::arg("suppressed_method") = "none", py::arg("threshold_method") = "auto", py::arg("thresholds") = std::unordered_map<std::string, float>())
         .def_static("laplacian_edge", &Image::LaplacianEdge, py::arg("img"), py::arg("channel"), py::arg("window_size"), py::arg("noise"))
+        .def("get_edge_contours", &Image::GetEdgeContours, py::arg("min_length") = 30)
 
         // Morphological functions
         .def_static("shrink", &Image::Shrink, py::arg("img"), py::arg("channel"), py::arg("iterations") = 8)
@@ -89,6 +90,7 @@ PYBIND11_MODULE(image_processing, m)
         .def_static("translate", &Image::Translate, py::arg("img"), py::arg("offset_x"), py::arg("offset_y"), py::arg("interpolate_method") = "nearest")
         .def_static("shear", &Image::Shear, py::arg("img"), py::arg("shear_x"), py::arg("shear_y"), py::arg("interpolate_method") = "nearest")
         .def_static("circle_warp", &Image::CircleWarp, py::arg("img"), py::arg("inverse") = false)
+        .def_static("perspective_warp", &Image::PerspectiveWarp, py::arg("img"), py::arg("dst_points"), py::arg("src_points") = std::vector<std::pair<int, int>>())
 
         // Texture Analysis functions
         .def_static("texture_cluster", &Image::TextureCluster, py::arg("imgs"), py::arg("filter_size"), py::arg("num_of_clusters"), py::arg("num_of_iterations"))

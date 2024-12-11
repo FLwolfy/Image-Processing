@@ -118,6 +118,13 @@ std::vector<unsigned char> ToLaplacianEdge(
     float threshold
 );
 
+std::vector<std::vector<std::pair<int, int>>> FindContours(
+    const unsigned char* edges,
+    int width, int height,
+    int bytesPerPixel,
+    int minLength = 30
+);
+
 ///////////////////////// Morphological functions /////////////////////////
 
 std::vector<unsigned char> Morpho(
@@ -222,6 +229,14 @@ std::vector<unsigned char> CircleToSquareWarp(
     const unsigned char* data, 
     int width, int height, 
     int bytesPerPixel
+);
+
+std::vector<unsigned char> ToPerspectiveWarp(
+    const unsigned char* data, 
+    int width, int height, 
+    int bytesPerPixel,
+    const std::vector<std::pair<int, int>>& dstPoints,
+    const std::vector<std::pair<int, int>>& srcPoints  
 );
 
 ///////////////////////// Texture Analysis functions /////////////////////////////
