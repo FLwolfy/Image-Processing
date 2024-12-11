@@ -20,7 +20,7 @@ def show_images(images: list[Image], subtitles: list[str], title: str = None):
     """
     Plot multiple images with their respective titles.
     """
-    fig, axes = plt.subplots(1, len(images), figsize=(15, 8 / np.log(2 * len(images))))
+    fig, axes = plt.subplots(1, len(images), figsize=(8, 8 / np.log(2 * len(images))))
     if len(images) == 1:
         axes = [axes]
     for i, (image, t) in enumerate(zip(images, subtitles)):
@@ -37,7 +37,7 @@ def show_images(images: list[Image], subtitles: list[str], title: str = None):
     
     if title:
         plt.suptitle(title, fontsize=16)
-    plt.subplots_adjust(wspace=0.4) 
+    plt.subplots_adjust(wspace=0.4)  # Adjust the space between the images
     plt.show()
     
 def plot_histogram(image: Image, title: str, channel: int=0, cumulative: bool=False):
