@@ -66,6 +66,7 @@ PYBIND11_MODULE(image_processing, m)
         // Edge Detection functions
         .def_static("sobel_edge", &Image::SobelEdge, py::arg("img"), py::arg("channel"), py::arg("window_size"), py::arg("suppressed_method") = "none", py::arg("threshold_method") = "auto", py::arg("thresholds") = std::unordered_map<std::string, float>())
         .def_static("laplacian_edge", &Image::LaplacianEdge, py::arg("img"), py::arg("channel"), py::arg("window_size"), py::arg("noise"))
+        .def_static("edge_contours", &Image::EdgeContours, py::arg("edge"), py::arg("min_length") = 30)
         .def("get_edge_contours", &Image::GetEdgeContours, py::arg("min_length") = 30)
 
         // Morphological functions

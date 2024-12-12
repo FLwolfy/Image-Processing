@@ -761,6 +761,31 @@ std::vector<std::vector<std::pair<int, int>>> FindContours(
     return contours;
 }
 
+std::vector<unsigned char> ToContours(
+    const unsigned char* edges,
+    int width, int height,
+    int bytesPerPixel,
+    int minLength
+) {
+    if (bytesPerPixel != 1) {
+        throw std::invalid_argument("Contours can only be drawn on grayscale images");
+    }
+
+    std::vector<unsigned char> contourImage(width * height);
+
+    std::vector<std::vector<std::pair<int, int>>> contours = FindContours(edges, width, height, bytesPerPixel, minLength);
+
+    for (const auto& contour : contours) {
+        for (const auto& point : contour) {
+            int x = point.first;
+            int y = point.second;
+            contourImage[y * width + x] = 255; // Draw the contour in white
+        }
+    }
+
+    return contourImage;
+}
+
 ///////////////////////// Morphological functions /////////////////////////
 
 std::vector<unsigned char> Morpho(

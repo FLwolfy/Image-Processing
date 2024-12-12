@@ -44,6 +44,7 @@ public:
     // Edge Detection functions
     static Image SobelEdge(const Image& img, int channel, int windowSize, const std::string& suppressedMethod = "none", const std::string& thresholdMethod = "auto", const std::unordered_map<std::string, float>& thresholds = {});
     static Image LaplacianEdge(const Image& img, int channel, int windowSize, float noise);
+    static Image EdgeContours(const Image& edge, int minLength = 30);
     std::vector<std::vector<std::pair<int, int>>> GetEdgeContours(int minLength = 30);
     
     // Morphological functions

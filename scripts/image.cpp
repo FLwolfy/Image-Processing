@@ -137,6 +137,16 @@ Image Image::LaplacianEdge(const Image& img, int channel, int windowSize, float 
     return edgeImage;
 }
 
+Image Image::EdgeContours(const Image& edge, int minLength)
+{
+    std::vector<unsigned char> contourData = ToContours(edge.m_data.data(), edge.m_width, edge.m_height, edge.m_bytesPerPixel, minLength);
+
+    Image contourImage = Image(edge.m_width, edge.m_height, edge.m_bytesPerPixel);
+    contourImage.m_data = contourData;
+
+    return contourImage;
+}
+
 std::vector<std::vector<std::pair<int, int>>> Image::GetEdgeContours(int minLength)
 {
     return FindContours(m_data.data(), m_width, m_height, m_bytesPerPixel, minLength);

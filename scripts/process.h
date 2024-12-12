@@ -125,6 +125,13 @@ std::vector<std::vector<std::pair<int, int>>> FindContours(
     int minLength = 30
 );
 
+std::vector<unsigned char> ToContours(
+    const unsigned char* edges,
+    int width, int height,
+    int bytesPerPixel,
+    int minLength = 30
+);
+
 ///////////////////////// Morphological functions /////////////////////////
 
 std::vector<unsigned char> Morpho(
