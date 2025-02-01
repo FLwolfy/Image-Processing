@@ -207,7 +207,7 @@ std::vector<unsigned char> Hash(
     return hashedData;
 }
 
-std::vector<unsigned char> Convolve(
+std::vector<unsigned char> Convolve( // Actually, this is a correlation
     const unsigned char* data,
     int width, int height,
     int bytesPerPixel,
@@ -258,7 +258,7 @@ std::vector<unsigned char> Convolve(
     return convolvedData;
 }
 
-std::vector<float> ConvolvePrecise(
+std::vector<float> ConvolvePrecise( // Actually, this is a correlation
     const unsigned char* data,
     int width, int height,
     int bytesPerPixel,
